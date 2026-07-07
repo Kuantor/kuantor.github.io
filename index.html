@@ -101,7 +101,14 @@
     
     <a class="button" href="https://kuantor.github.io/Billiards/">🎱 Billiard Balls Demo</a>
     <a class="button" href="https://kuantor.github.io/Synthesizer/">🎹 Synthesizer Demo</a>
-    <a class="button" href="#" onclick="document.getElementById('space-audio').play(); return false;">
+    <a class="button" href="#" onclick="
+      var audio = document.getElementById('space-audio');
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+      return false;">
       🎵 Listen to my 'Space Oddity' cover
     </a>
     <a class="button" href="https://www.youtube.com/@MrKuant">📺 My YouTube Channel</a>
