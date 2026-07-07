@@ -3,37 +3,86 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hi there!</title>
-  <!--<link rel="stylesheet" href="style.css">-->
+  <title>Anton | Welcome</title>
+  <!-- Google Font fallback -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
-      background-image: url('background.jpg'); /* path to your image */
-      background-repeat: no-repeat;            /* prevents tiling */
-      background-size: cover;                  /* scales to fill screen */
-      background-attachment: fixed;            /* keeps image fixed while scrolling */
-      background-position: center;             /* centers the image */
+      margin: 0;
+      font-family: "Tempus Sans ITC", "Papyrus", "Orbitron", Arial, sans-serif;
+      background-image: url('background.jpg');
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+      background-position: center;
+      color: #fff;
+    }
+    header {
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px; /* reduced padding */
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.6em;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #00bfff, 0 0 15px #1e90ff;
+    }
+    main {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 20px; /* reduced padding */
+      text-align: center;
+    }
+    h2 {
+      margin: 10px 0; /* minimal margin */
+      font-weight: 400;
+      line-height: 1.6;
+    }
+    .button {
+      display: block;
+      margin: 12px auto;
+      padding: 12px 24px;
+      max-width: 300px;
+      background-color: #1e90ff;
+      color: #fff;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1.1em;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      font-family: "Tempus Sans ITC", "Papyrus", "Orbitron", Arial, sans-serif;
+      text-shadow: 0 0 6px #00bfff, 0 0 12px #1e90ff;
+    }
+    .button:hover {
+      background-color: #104e8b;
+      transform: scale(1.05);
+    }
+    footer {
+      background-color: rgba(0, 0, 0, 0.5);
+      text-align: center;
+      padding: 10px;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1><p style="color: white;">Hi there!</p></h1>
-    <!--<nav>
-      <a href="#projects">Projects</a>
-      <a href="#about">About</a>
-      <a href="#contact">Contact</a>
-    </nav>-->
+    <h1>Anton’s Projects & Demos</h1>
   </header>
   <main>
-    <section id="projects">
-      <h2><p style="color: white;">This is a placeholder for my website, hosted with GitHub Pages and powered by a GitHub repository.</p></h2>
-      <h2><p style="background-color: white"><a href="https://kuantor.github.io/Billiards/">Billiard Balls Demo</a></p></h2>
-      <h2><p style="background-color: white"><a href="https://kuantor.github.io/Synthesizer/">Synthesizer Demo</a></p></h2>
-    </section>
+    <h2>
+      Welcome!<br>
+      This site is a work in progress, built with GitHub Pages and powered by my repositories.<br>
+      Feel free to explore the demos and projects I’m sharing here.
+    </h2>
+    
+    <!-- <a class="button" href="#about">👤 About Me</a> -->
+    <a class="button" href="https://kuantor.github.io/Billiards/">🎱 Billiard Balls Demo</a>
+    <a class="button" href="https://kuantor.github.io/Synthesizer/">🎹 Synthesizer Demo</a>
+    <a class="button" href="space.mp3">🎵 Listen to my 'Space Oddity' cover</a>
+    <a class="button" href="https://www.youtube.com/@MrKuant">📺 My YouTube Channel</a>
   </main>
   <footer>
-    <!--<p style="color: white;">2026</p>-->
+    <p>© 2026 Anton</p>
   </footer>
-</p>  
 </body>
 </html>
