@@ -4,12 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anton | Welcome</title>
-  <!-- Google Font fallback -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    /* Embed Tempus Sans ITC from local project folder */
+    @font-face {
+      font-family: "Tempus Sans ITC";
+      src: url("TempusITCTT.woff2") format("woff2"),
+           url("TempusITCTT.woff") format("woff");
+      font-weight: normal;
+      font-style: normal;
+    }
+
     body {
       margin: 0;
-      font-family: "Tempus Sans ITC", "Papyrus", "Orbitron", Arial, sans-serif;
+      font-family: "Tempus Sans ITC", Arial, sans-serif;
       background-image: url('background.jpg');
       background-repeat: no-repeat;
       background-size: cover;
@@ -19,22 +26,22 @@
     }
     header {
       background-color: rgba(0, 0, 0, 0.5);
-      padding: 10px; /* reduced padding */
+      padding: 10px; /* minimal gap */
       text-align: center;
     }
     header h1 {
       margin: 0;
       font-size: 2.6em;
       letter-spacing: 2px;
-      text-shadow: 0 0 8px #00bfff, 0 0 15px #1e90ff;
+      text-shadow: 0 0 8px #00bfff, 0 0 15px #1e90ff; /* glowing neon blue */
     }
     main {
       background-color: rgba(0, 0, 0, 0.4);
-      padding: 20px; /* reduced padding */
+      padding: 20px;
       text-align: center;
     }
     h2 {
-      margin: 10px 0; /* minimal margin */
+      margin: 10px 0;
       font-weight: 400;
       line-height: 1.6;
     }
@@ -43,17 +50,17 @@
       margin: 12px auto;
       padding: 12px 24px;
       max-width: 300px;
-      background-color: #1e90ff;
+      background-color: #1e90ff; /* blue buttons */
       color: #fff;
       border-radius: 6px;
       text-decoration: none;
       font-size: 1.1em;
       transition: background-color 0.3s ease, transform 0.2s ease;
-      font-family: "Tempus Sans ITC", "Papyrus", "Orbitron", Arial, sans-serif;
-      text-shadow: 0 0 6px #00bfff, 0 0 12px #1e90ff;
+      font-family: "Tempus Sans ITC", Arial, sans-serif;
+      text-shadow: 0 0 6px #00bfff, 0 0 12px #1e90ff; /* glowing neon effect */
     }
     .button:hover {
-      background-color: #104e8b;
+      background-color: #104e8b; /* darker blue on hover */
       transform: scale(1.05);
     }
     footer {
@@ -71,7 +78,7 @@
   <main>
     <h2>
       Welcome!<br>
-      This site is a work in progress, built with GitHub Pages and powered by my repositories.<br>
+      This site is a work in progress, powered by GitHub Pages.<br>
       Feel free to explore the demos and projects I’m sharing here.
     </h2>
     
