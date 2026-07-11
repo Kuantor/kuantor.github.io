@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anton | About Me</title>
+
+  <!-- 🔑 Open Graph tags for Telegram/WhatsApp/Discord previews -->
+  <meta property="og:title" content="About Anton Kuznietsov" />
+  <meta property="og:description" content="Software engineer — Python full stack, test automation, C++ game dev roots, and a baritone past in the Kharkiv Philharmonic Choir." />
+  <meta property="og:image" content="avatar_mic.jpg" />
+  <meta property="og:url" content="https://kuantor.github.io/about.html" />
+  <meta property="og:type" content="profile" />
+
+  <style>
+    @font-face {
+      font-family: "Tempus Sans ITC";
+      src: url("TempusITCTT.woff2") format("woff2"),
+           url("TempusITCTT.woff") format("woff");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Tempus Sans ITC", Arial, sans-serif;
+      color: #fff;
+    }
+
+    /* 🎥 Background video styling */
+    #bg-video {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      min-width: 100%;
+      min-height: 100%;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    header {
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      text-align: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2.6em;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #00bfff, 0 0 15px #1e90ff;
+    }
+    main {
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 20px;
+      text-align: center;
+    }
+    .avatar {
+      display: block;
+      margin: 20px auto;
+      width: 220px;
+      max-width: 70vw;
+      border-radius: 50%;
+      border: 3px solid #1e90ff;
+      box-shadow: 0 0 15px #00bfff, 0 0 30px rgba(30, 144, 255, 0.5);
+    }
+    .about-text {
+      max-width: 700px;
+      margin: 0 auto 20px;
+      text-align: left;
+      font-size: 1.15em;
+      line-height: 1.7;
+    }
+    .about-text p {
+      margin: 0 0 14px;
+    }
+    .button {
+      display: block;
+      margin: 12px auto;
+      padding: 12px 24px;
+      max-width: 300px;
+      background-color: rgba(30, 144, 255, 0.2); /* transparent blue */
+      color: #fff;
+      border: 2px solid #1e90ff;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1.1em;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      font-family: "Tempus Sans ITC", Arial, sans-serif;
+      text-shadow: 0 0 6px #00bfff, 0 0 12px #1e90ff;
+    }
+    .button:hover {
+      background-color: rgba(30, 144, 255, 0.6);
+      transform: scale(1.05);
+    }
+    footer {
+      background-color: rgba(0, 0, 0, 0.5);
+      text-align: center;
+      padding: 10px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <!-- 🎥 Background video -->
+  <video autoplay muted loop id="bg-video">
+    <source src="background.mp4" type="video/mp4">
+  </video>
+
+  <header>
+    <h1>About Me</h1>
+  </header>
+  <main>
+    <img class="avatar" src="avatar_mic.jpg" alt="Anton Kuznietsov">
+
+    <div class="about-text">
+      <p>I am Anton Kuznietsov, a software engineer with over a decade in the IT industry — from C++ game development at Gameloft to more than seven years in test automation, currently at Software Aspekte.</p>
+      <p>Today my focus is full stack development with Python at its core, backed by React, Next.js, Node.js, and a solid grounding in databases, AWS, and Docker.</p>
+      <p>Before engineering, I sang as a baritone in the Kharkiv Philharmonic Choir, and music still finds its way into my work — including a web synthesizer studio and a browser billiards game you can try on this site.</p>
+      <p>I hold a degree in Mechanics and Mathematics from Karazin National University and am based in Kyiv.</p>
+      <p>This page is a work in progress — new projects and details are on the way.</p>
+    </div>
+
+    <a class="button" href="index.html">🏠 Back to Main Page</a>
+  </main>
+  <footer>
+    <p>
+      <span style="font-family: Arial, sans-serif;">©</span>
+      <span style="font-family: 'Tempus Sans ITC', Arial, sans-serif;"> 2026 Anton</span>
+    </p>
+  </footer>
+</body>
+</html>
