@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ORMs — the details | Ship It Live!</title>
+  <meta name="description" content="Notes to the video ORMs Explained: the code, the measurements and the rules of thumb that did not fit in seven minutes.">
+  <meta property="og:title" content="ORMs — the details">
+  <meta property="og:description" content="Notes to the video ORMs Explained: N+1 measured, the identity map, joinedload or selectinload, Alembic, and when an ORM is the wrong tool.">
+  <meta property="og:image" content="https://kuantor.github.io/preview.jpg">
+  <meta property="og:url" content="https://kuantor.github.io/notes/orms.html">
+  <meta property="og:type" content="article">
+  <style>
+    :root {
+      --bg: #FBF7EE; --paper: #FFFDF8; --ink: #2A2418; --muted: #6E6350; --rule: #E4DAC5;
+      --gold: #A87A24; --terra: #B4582F; --teal: #3F7F76;
+      --code-bg: #262014; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A150E; --paper: #241D13; --ink: #F1EADA; --muted: #AC9F84; --rule: #4A3D22;
+        --gold: #C8A24B; --terra: #D0845A; --teal: #6FB0A6;
+        --code-bg: #120E09; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 17px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    main { max-width: 46rem; margin: 0 auto; padding: 3rem 1rem 4rem; }
+    header .kicker { color: var(--gold); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+    h1 { font: 700 2.6rem/1.1 Cambria, Georgia, serif; margin: .3rem 0 .6rem; color: var(--gold); }
+    .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2rem; }
+    h2 { font: 700 1.6rem/1.25 Cambria, Georgia, serif; margin: 3rem 0 .4rem; color: var(--ink);
+         padding-top: 1rem; border-top: 1px solid var(--rule); }
+    h2 .n { color: var(--gold); margin-right: .4rem; }
+    h3 { font-size: 1.05rem; margin: 1.6rem 0 .3rem; color: var(--gold); }
+    .video { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    a { color: var(--gold); }
+    code { font: .88em/1.4 Consolas, "Cascadia Mono", monospace; background: var(--paper);
+           border: 1px solid var(--rule); border-radius: 4px; padding: 0 .25em; }
+    pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 1rem 1.1rem;
+          overflow-x: auto; font: .85rem/1.5 Consolas, "Cascadia Mono", monospace; }
+    pre code { background: none; border: none; padding: 0; color: inherit; }
+    pre .c { color: var(--code-dim); } pre .k { color: var(--code-gold); }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .card { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--gold);
+            border-radius: 6px; padding: .8rem 1rem; margin: 1rem 0; }
+    .card.warn { border-left-color: var(--terra); }
+    .card p { margin: .3rem 0; }
+    .big { font: 700 3rem/1 Cambria, Georgia, serif; color: var(--terra); }
+    nav.toc { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: .8rem 1.2rem; }
+    nav.toc ol { margin: .3rem 0; padding-left: 1.4rem; columns: 2; column-gap: 2rem; }
+    nav.toc li { break-inside: avoid; }
+    footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+    .step { display: grid; grid-template-columns: 2.2rem 1fr; gap: .2rem .8rem; margin: 1.6rem 0 .4rem; align-items: baseline; }
+    .step .num { background: var(--gold); color: var(--bg); border-radius: 50%; width: 2rem; height: 2rem;
+                 display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+    .step h3 { margin: 0; color: var(--ink); font-size: 1.1rem; }
+    .os { color: var(--muted); font-size: .85rem; margin: .6rem 0 -.6rem; }
+    pre .out { color: var(--code-dim); }
+    @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 2rem; } td.num { white-space: normal; } }
+  </style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">Ship It Live! · notes to the video</p>
+  <h1>ORMs — the details</h1>
+  <p class="lede">The video <i>ORMs Explained</i> keeps to the big picture in about seven minutes. This page has what did not fit: the code, the measurements and the rules of thumb, in the order the video goes. Every number here was counted by the script in the last section, which you can run yourself.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#mismatch">Two models that disagree</a></li>
+    <li><a href="#by-hand">Life without an ORM</a></li>
+    <li><a href="#flask">Why Flask ships no ORM</a></li>
+    <li><a href="#core">Core and ORM</a></li>
+    <li><a href="#mapping">Declarative mapping</a></li>
+    <li><a href="#session">The session</a></li>
+    <li><a href="#identity">The identity map</a></li>
+    <li><a href="#n-plus-one">N + 1, measured</a></li>
+    <li><a href="#fixes">Which fix, and why</a></li>
+    <li><a href="#catch">How to catch it</a></li>
+    <li><a href="#alembic">Migrations with Alembic</a></li>
+    <li><a href="#wrong-tool">When an ORM is the wrong tool</a></li>
+    <li><a href="#script">Run it yourself</a></li>
+    <li><a href="#try-it">Try it by hand</a></li>
+  </ol>
+</nav>
+
+<h2 id="mismatch"><span class="n">1</span>Two models that disagree</h2>
+<p class="video">Video: slide 3</p>
+<p>A relational database and a Python program describe the same data in two different models, and they disagree on more points than the video had time for:</p>
+<table>
+  <tr><th>The relational model</th><th>The object model</th></tr>
+  <tr><td>Tables</td><td>Classes</td></tr>
+  <tr><td>Rows</td><td>Instances</td></tr>
+  <tr><td>Columns</td><td>Attributes</td></tr>
+  <tr><td>Foreign keys, followed with a join</td><td>References, followed with a dot: <code>article.author</code></td></tr>
+  <tr><td>No inheritance</td><td>Inheritance hierarchies</td></tr>
+  <tr><td>Identity by primary key</td><td>Identity by memory address</td></tr>
+  <tr><td>Set-based operations</td><td>Iteration</td></tr>
+</table>
+<p>The name, <b>object-relational impedance mismatch</b>, comes from electrical engineering. Connect two circuits of different impedance, and part of the signal is reflected back at the junction instead of passing through. Both models are coherent on their own; the cost is at the junction. An ORM is the adapter you put there. It does not remove the mismatch. It moves it somewhere you can manage. The term dates from the object-database debates of the 1990s, and the electrical metaphor is the original one.</p>
+
+<h2 id="by-hand"><span class="n">2</span>Life without an ORM</h2>
+<p class="video">Video: slide 4</p>
+<p>The same job done by hand, with a database driver and nothing else:</p>
+<pre><code>cur.execute(
+    "SELECT id, title, author_id "
+    "FROM articles WHERE id = %s", (42,)
+)
+row = cur.fetchone()      <span class="c"># (42, "Hello", 7)</span>
+article = {
+    "id":    row[0],
+    "title": row[1],
+}</code></pre>
+<ul>
+  <li><b>Column order, twice.</b> The SQL and the unpacking must agree. Add a column in the middle of the SELECT, and <code>row[1]</code> silently becomes the wrong field. Nothing raises.</li>
+  <li><b>No behavior.</b> A tuple cannot validate itself and has no methods: data with the meaning taken off.</li>
+  <li><b>The author is a second query,</b> and joining the two results is your job, every time.</li>
+</ul>
+<p>None of this is wrong. Plenty of production systems are written this way, and for a small script it is the right amount of machinery. It does not scale with the number of tables, or with the number of developers touching them.</p>
+
+<h2 id="flask"><span class="n">3</span>Why Flask ships no ORM</h2>
+<p class="video">Not in the video</p>
+<p>Flask is a microframework: the core does routing, request handling, templating and a signed-cookie session. The ORM, forms, migrations and authentication arrive as extensions you choose, or as code you write.</p>
+<table>
+  <tr><th>Django</th><th>Flask</th></tr>
+  <tr><td>Ships its own ORM; using Django means using it</td><td>Ships nothing: you choose, and must choose</td></tr>
+  <tr><td>Active Record: the model saves itself, <code>article.save()</code></td><td>Almost always SQLAlchemy, which is Data Mapper: plain objects, and a separate session persists them</td></tr>
+  <tr><td>Migrations built in</td><td>Alembic, added separately</td></tr>
+</table>
+<p>The difference between the two styles sounds academic until you try to unit-test a model without a database: with Data Mapper, the object itself knows nothing about storage.</p>
+<p>In Flask you usually add <b>Flask-SQLAlchemy</b>. It does not replace SQLAlchemy; it wires it into Flask, so that every request gets one session, closed when the response is sent. That request-scoped session is the whole value of the extension, and it is the part you would otherwise get wrong.</p>
+
+<h2 id="core"><span class="n">4</span>SQLAlchemy is two libraries: Core and ORM</h2>
+<p class="video">Video: slide 6</p>
+<table>
+  <tr><th>Core: a SQL expression language</th><th>ORM: mapping and state tracking, on top</th></tr>
+  <tr><td>Tables, columns, composable <code>select()</code></td><td>Classes mapped to tables</td></tr>
+  <tr><td>Compiles to each database's own dialect of SQL</td><td>A session tracking what changed</td></tr>
+  <tr><td>No classes, no session, no objects</td><td>Relationships traversed as attributes</td></tr>
+  <tr><td>Set-based: fast bulk work lives here</td><td>Data Mapper style, not Active Record</td></tr>
+</table>
+<p>The two share one connection and one transaction, so you can drop from the ORM into Core in the middle of a job:</p>
+<pre><code><span class="c"># ORM: load an object, change it, let the session write the UPDATE</span>
+article = session.get(Article, 42)
+article.title = "Hello, world"
+session.commit()
+
+<span class="c"># Core: one set-based statement, and no objects at all</span>
+session.execute(
+    update(Article).where(Article.author_id == 7).values(title="Draft")
+)
+session.commit()</code></pre>
+<p>SQLAlchemy assumes you know SQL and want leverage, not concealment. Some ORMs try to make the database invisible; this one tries to make it convenient, and when the abstraction cannot say what you mean, you drop a level instead of fighting it. Michael Bayer released it in 2006, and it has been the default for data access in Python for most of the time since.</p>
+
+<h2 id="mapping"><span class="n">5</span>Declarative mapping, SQLAlchemy 2.0 style</h2>
+<p class="video">Not in the video</p>
+<pre><code><span class="k">class</span> Base(DeclarativeBase):
+    <span class="k">pass</span>
+
+<span class="k">class</span> Author(Base):
+    __tablename__ = "authors"
+    id:   Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    articles: Mapped[list["Article"]] = relationship(back_populates="author")
+
+<span class="k">class</span> Article(Base):
+    __tablename__ = "articles"
+    id:    Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    author_id: Mapped[int] = mapped_column(ForeignKey("authors.id"))
+    author: Mapped[Author] = relationship(back_populates="articles")</code></pre>
+<ul>
+  <li><b>The annotation is part of the schema.</b> <code>Mapped[str]</code> makes the column NOT NULL; <code>Mapped[str | None]</code> makes it nullable. Your type checker reads the same thing the database does.</li>
+  <li><b><code>relationship()</code> is not a column.</b> There is no such column in the table. It is the join, written once in Python: <code>article.author</code> and <code>author.articles</code> are two views of one foreign key.</li>
+  <li><b><code>back_populates</code> keeps both sides in step.</b> Append an article to <code>author.articles</code>, and that article's <code>author</code> is set in memory at once, before any SQL runs.</li>
+</ul>
+<div class="card"><p>If a tutorial uses <code>session.query(...)</code>, it was written before 2.0. The code still runs, but learn the 2.0 style: <code>session.scalars(select(Article))</code>, <code>session.get(Article, 42)</code>.</p></div>
+
+<h2 id="session"><span class="n">6</span>The session and the unit of work</h2>
+<p class="video">Video: slide 7</p>
+<ol>
+  <li><b>You change objects:</b> <code>session.add(a)</code>, or just <code>article.title = "New"</code>. Nothing has been sent yet.</li>
+  <li><b><code>flush()</code></b> works out the INSERT, UPDATE and DELETE statements and sends them in dependency order: parents before children, so a foreign key never points at a row that does not exist yet. You did not write that order; it comes from your object graph.</li>
+  <li><b><code>commit()</code></b> ends the transaction, and calls <code>flush()</code> for you if you have not.</li>
+</ol>
+<pre><code><span class="k">with</span> Session(engine) <span class="k">as</span> s, s.begin():   <span class="c"># commits at the end, or rolls back on an error</span>
+    s.add(Article(title="New", author_id=1))</code></pre>
+<p>The pattern is called <b>Unit of Work</b>, and so is its partner below, the <b>Identity Map</b>: both come from Martin Fowler's <i>Patterns of Enterprise Application Architecture</i> (2002). They are older than most of the frameworks that use them.</p>
+<div class="card warn"><p><b>One session per request, closed when the response is sent.</b> A long-lived session shared across requests is not a performance problem but a correctness one: it shows up as stale data, and eventually as one user seeing another user's objects.</p></div>
+
+<h2 id="identity"><span class="n">7</span>The identity map</h2>
+<p class="video">Video: one sentence on slide 7</p>
+<p>Within one session, one row is one object. Always.</p>
+<pre><code>a = session.get(Article, 42)
+b = session.get(Article, 42)
+<span class="k">assert</span> a <span class="k">is</span> b     <span class="c"># not equal: the same object</span></code></pre>
+<p>Without it, two queries touching one row would give you two copies, and changing one would not change the other. With it, there is exactly one Article 42 in the session, and everybody holds that one. Three consequences:</p>
+<ul>
+  <li><b>Asking again is free.</b> <code>session.get()</code> for a row already loaded sends no query.</li>
+  <li><b>Objects expire on commit.</b> Their attributes reload on the next access. Touch one after its session has closed, and you get <code>DetachedInstanceError</code>: the object in your hand still looks like data, but the session behind it is gone.</li>
+  <li><b>It changes how bad N+1 looks</b> — which is the next section.</li>
+</ul>
+
+<h2 id="n-plus-one"><span class="n">8</span>N + 1, measured</h2>
+<p class="video">Video: slides 8 and 9</p>
+<pre><code>articles = session.scalars(select(Article)).all()
+
+<span class="k">for</span> a <span class="k">in</span> articles:
+    print(a.title, a.author.name)</code></pre>
+<p><code>a.author</code> reads like <code>a.title</code>, but the author was never loaded, so the first touch sends a query. That is lazy loading, the default for every relationship. With 100 articles by 100 different authors:</p>
+<p><span class="big">101</span> statements: one for the list, then one per author.</p>
+<p>Locally, on SQLite with a hundred rows, they take a few milliseconds. Against a database across a network, at about a millisecond per round trip, the 100 extra queries add a tenth of a second to the page, and the cost grows with the data. It never crashes, which is why it survives so long.</p>
+<h3>Except when it is eleven</h3>
+<p>Same code, same 100 articles, but they share only ten authors. The script counts <b>11</b> statements, not 101. Once an author is in the session, the identity map hands back the same object without a query. So the real formula is:</p>
+<div class="card"><p><b>1 + the number of distinct related rows</b>, not 1 + N.</p></div>
+<p>That sounds like good news, and it is the opposite. Your test fixtures have three authors and your staging data ten, so the page looks fine in development and in CI. The bug grows with production data, the one place nobody measured it. Most write-ups state N+1 as 1 + N and stop; with a session-backed ORM, the distinct-rows version is what you observe.</p>
+
+<h2 id="fixes"><span class="n">9</span>Which fix, and why</h2>
+<p class="video">Video: slide 10, and the rule it points to</p>
+<p>Both fixes are one line on the query, and the loop does not change. Both are <b>eager loading</b>: you say up front which relationship you will need.</p>
+<pre><code><span class="c"># joinedload: one query with a LEFT OUTER JOIN</span>
+select(Article).options(joinedload(Article.author))
+
+<span class="c"># selectinload: the articles, then all their authors at once with WHERE id IN (...)</span>
+select(Article).options(selectinload(Article.author))</code></pre>
+<p>Which one to pick depends on the <b>direction</b> of the relationship:</p>
+<table>
+  <tr><th>Direction</th><th>Use</th><th>Why</th></tr>
+  <tr><td>Many-to-one<br><code>article.author</code></td><td><code>joinedload</code></td><td>One author per article: the join adds columns to each row, not rows.</td></tr>
+  <tr><td>One-to-many<br><code>author.articles</code></td><td><code>selectinload</code></td><td>A join in this direction repeats the parent's columns once for every child.</td></tr>
+</table>
+<p>Measured, statements sent and rows returned:</p>
+<table>
+  <tr><th>Loading</th><th>100 articles → their authors</th><th>100 authors × 50 articles each</th></tr>
+  <tr><td>lazy (the default)</td><td class="num">101 statements · 200 rows</td><td class="num">101 statements · 5,100 rows</td></tr>
+  <tr><td><code>joinedload</code></td><td class="num">1 statement · 100 rows</td><td class="num">1 statement · 5,000 rows</td></tr>
+  <tr><td><code>selectinload</code></td><td class="num">2 statements · 200 rows</td><td class="num">2 statements · 5,100 rows</td></tr>
+</table>
+<p>Look at the right-hand column. The join sends one statement, but builds 100 authors out of 5,000 rows, each author's columns repeated fifty times across the network, and then thrown away in Python. That is also why SQLAlchemy makes you call <code>.unique()</code> on a joined collection: without it, the result raises <code>InvalidRequestError</code>. <code>selectinload</code> sends each author once and each article once. On a collection, one query is not automatically the cheaper one; what crosses the network is what costs.</p>
+
+<h2 id="catch"><span class="n">10</span>How to catch it</h2>
+<p class="video">Video: <code>echo=True</code> on slide 10</p>
+<p>You will not spot N+1 by reading code. You spot it by looking at the SQL.</p>
+<ul>
+  <li><b><code>create_engine(URL, echo=True)</code></b> prints every statement. A page that scrolls hundreds of near-identical SELECTs past you has one.</li>
+  <li><b><code>relationship(lazy="raise")</code></b>, or <code>.options(raiseload(Article.author))</code> on one query, turns an accidental lazy load into an exception: <code>'Article.author' is not available due to lazy='raise'</code>. Use it in tests, and N+1 becomes a failing test instead of a slow page.</li>
+  <li><b>flask-debugtoolbar</b> shows the queries of each request in the browser: the fastest way to see that a page went from 3 queries to 300 after one innocent template change.</li>
+  <li><b>Count them yourself</b> with the <code>before_cursor_execute</code> event, as the script below does. It is about ten lines.</li>
+</ul>
+
+<h2 id="alembic"><span class="n">11</span>Migrations with Alembic</h2>
+<p class="video">Video: one sentence on slide 11</p>
+<p>SQLAlchemy describes a schema; it does not change a live database. That is <b>Alembic</b>, by the same author: versioned migration scripts, chained in order, with a table in the database (<code>alembic_version</code>) recording where it stands.</p>
+<p>An alembic is a still, the copper vessel alchemists distilled in. The word came to English through Arabic <i>al-anbīq</i>, from the Greek <i>ambix</i>, a cup. Bayer named the tool as a pun on SQLAlchemy.</p>
+<div class="card warn">
+  <p><b>Autogenerate is a draft, not an answer.</b> Alembic writes migrations by comparing your models with the live database, and it is good at it, but it guesses. It guesses wrong on renames: a renamed column comes out as a DROP followed by an ADD, correct in shape and fatal to every value in that column.</p>
+  <p>Read every generated migration before you run it, and write a rename as one: <code>op.alter_column("articles", "title", new_column_name="headline")</code>.</p>
+</div>
+<p>Migrations are the one part of the ORM story where a mistake is not slow. It is gone.</p>
+
+<h2 id="wrong-tool"><span class="n">12</span>When an ORM is the wrong tool</h2>
+<p class="video">Not in the video</p>
+<ul>
+  <li><b>The query is the point:</b> reporting, analytics, aggregation over large tables. Clearer and faster as SQL.</li>
+  <li><b>Bulk operations:</b> loading a million rows into objects to change one field is enormously wasteful. One set-based UPDATE in Core does it.</li>
+  <li><b>Vendor-specific features:</b> <code>INSERT … ON CONFLICT</code>, window functions, CTEs, JSONB operators, full-text search. SQLAlchemy exposes many of them, but once you are fighting the abstraction to say something SQL says plainly, stop fighting.</li>
+  <li><b>A schema you do not control:</b> a legacy database with no primary keys and mixed conventions can cost more to map than to query.</li>
+</ul>
+<p>With SQLAlchemy, dropping down does not mean leaving. Core is the same library, on the same connection and in the same transaction, so the escape hatch costs nothing but the abstraction you were fighting anyway.</p>
+
+<h2 id="script"><span class="n">13</span>Run it yourself</h2>
+<p>Every number on this page comes from this script: <code>pip install sqlalchemy</code>, then <code>python n_plus_one.py</code>. It counts what reaches the database driver, and the rows each statement returns. Checked with SQLAlchemy 2.0.51 and Python 3.14, 22 November 2026.</p>
+<pre><code><span class="k">from</span> sqlalchemy <span class="k">import</span> ForeignKey, create_engine, event, select
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> (DeclarativeBase, Mapped, Session, joinedload, mapped_column,
+                            relationship, selectinload)
+
+
+<span class="k">class</span> Base(DeclarativeBase):
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> Author(Base):
+    __tablename__ = "authors"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    articles: Mapped[list["Article"]] = relationship(back_populates="author")
+
+
+<span class="k">class</span> Article(Base):
+    __tablename__ = "articles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    author_id: Mapped[int] = mapped_column(ForeignKey("authors.id"))
+    author: Mapped[Author] = relationship(back_populates="articles")
+
+
+<span class="k">def</span> database(authors, articles_each):
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    <span class="k">with</span> Session(engine) <span class="k">as</span> s, s.begin():
+        <span class="k">for</span> i <span class="k">in</span> range(authors):
+            author = Author(name=f"author {i}")
+            author.articles = [Article(title=f"article {i}.{j}") <span class="k">for</span> j <span class="k">in</span> range(articles_each)]
+            s.add(author)
+    <span class="k">return</span> engine
+
+
+<span class="k">def</span> measure(engine, work):
+    <span class="c">"""Run work(session); return (statements sent, rows those statements return)."""</span>
+    sent = []
+
+    <span class="k">def</span> record(conn, cursor, statement, params, context, executemany):
+        sent.append((statement, params))
+
+    event.listen(engine, "before_cursor_execute", record)
+    <span class="k">with</span> Session(engine) <span class="k">as</span> s:
+        work(s)
+    event.remove(engine, "before_cursor_execute", record)
+    <span class="k">with</span> engine.connect() <span class="k">as</span> conn:
+        raw = conn.connection.cursor()
+        rows = sum(len(raw.execute(sql, params).fetchall()) <span class="k">for</span> sql, params <span class="k">in</span> sent)
+    <span class="k">return</span> len(sent), rows
+
+
+<span class="k">def</span> article_authors(options=()):
+    <span class="k">def</span> work(s):
+        <span class="k">for</span> a <span class="k">in</span> s.scalars(select(Article).options(*options)):
+            a.author.name
+    <span class="k">return</span> work
+
+
+<span class="k">def</span> author_articles(options=(), unique=False):
+    <span class="k">def</span> work(s):
+        result = s.scalars(select(Author).options(*options))
+        <span class="k">for</span> author <span class="k">in</span> (result.unique() <span class="k">if</span> unique <span class="k">else</span> result):
+            len(author.articles)
+    <span class="k">return</span> work
+
+
+<span class="k">if</span> __name__ == "__main__":
+    print("many-to-one, article.author: 100 articles")
+    one_each = database(authors=100, articles_each=1)
+    ten = database(authors=10, articles_each=10)
+    print("  lazy, 100 distinct authors  ", measure(one_each, article_authors()))
+    print("  lazy, 10 distinct authors   ", measure(ten, article_authors()))
+    print("  joinedload                  ", measure(one_each, article_authors([joinedload(Article.author)])))
+    print("  selectinload                ", measure(one_each, article_authors([selectinload(Article.author)])))
+
+    print("one-to-many, author.articles: 100 authors x 50 articles")
+    fifty = database(authors=100, articles_each=50)
+    print("  lazy                        ", measure(fifty, author_articles()))
+    print("  joinedload (.unique())      ", measure(fifty, author_articles([joinedload(Author.articles)], unique=True)))
+    print("  selectinload                ", measure(fifty, author_articles([selectinload(Author.articles)])))
+    print("(statements sent, rows returned)")</code></pre>
+<p>Its output:</p>
+<pre><code>many-to-one, article.author: 100 articles
+  lazy, 100 distinct authors   (101, 200)
+  lazy, 10 distinct authors    (11, 110)
+  joinedload                   (1, 100)
+  selectinload                 (2, 200)
+one-to-many, author.articles: 100 authors x 50 articles
+  lazy                         (101, 5100)
+  joinedload (.unique())       (1, 5000)
+  selectinload                 (2, 5100)
+(statements sent, rows returned)</code></pre>
+
+<h2 id="try-it"><span class="n">14</span>Try it by hand</h2>
+<p>Fifteen minutes at a Python prompt: build two tables, watch SQLAlchemy write every statement, cause N+1 on purpose, fix it, and meet the errors from this page in person. Every step was run on 22 November 2026 with SQLAlchemy 2.0.51, Python 3.14 and, for the bonus, Flask 3.1.3 with Flask-SQLAlchemy 3.1.1; the output below is copied from that run.</p>
+<p>You need Python 3.9 or newer and a terminal. The database is a SQLite file, so there is nothing else to install or start.</p>
+
+<div class="step"><span class="num">1</span><h3>Make a folder with its own environment, and install SQLAlchemy</h3></div>
+<p class="os">Windows (PowerShell)</p>
+<pre><code>mkdir try-orm; cd try-orm
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install sqlalchemy</code></pre>
+<p class="os">macOS / Linux</p>
+<pre><code>mkdir try-orm &amp;&amp; cd try-orm
+python3 -m venv venv
+source venv/bin/activate
+pip install sqlalchemy</code></pre>
+
+<div class="step"><span class="num">2</span><h3>Save the models as <code>models.py</code></h3></div>
+<p>The two classes from section 5, an engine with <code>echo=True</code> so that every statement is printed, and a tiny counter, <code>sent()</code>, that tells you how many statements reached the database since you last asked.</p>
+<pre><code><span class="k">from</span> sqlalchemy <span class="k">import</span> ForeignKey, create_engine, event, select, update
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> (DeclarativeBase, Mapped, Session, joinedload, mapped_column,
+                            raiseload, relationship, selectinload)
+
+engine = create_engine("sqlite:///blog.db", echo=True)   <span class="c"># echo: print every statement</span>
+
+
+<span class="k">class</span> Base(DeclarativeBase):
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> Author(Base):
+    __tablename__ = "authors"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    articles: Mapped[list["Article"]] = relationship(back_populates="author")
+
+
+<span class="k">class</span> Article(Base):
+    __tablename__ = "articles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    author_id: Mapped[int] = mapped_column(ForeignKey("authors.id"))
+    author: Mapped[Author] = relationship(back_populates="articles")
+
+
+statements = []
+
+
+@event.listens_for(engine, "before_cursor_execute")
+<span class="k">def</span> remember(conn, cursor, statement, params, context, executemany):
+    statements.append(statement)
+
+
+<span class="k">def</span> sent():
+    <span class="c">"""How many statements reached the database since the last call."""</span>
+    count = len(statements)
+    statements.clear()
+    <span class="k">return</span> count</code></pre>
+
+<div class="step"><span class="num">3</span><h3>Start Python with the models loaded, and create the tables</h3></div>
+<pre><code>python -i models.py</code></pre>
+<p>The <code>-i</code> runs the file and leaves you at the <code>&gt;&gt;&gt;</code> prompt with everything in it defined. Now:</p>
+<pre><code>&gt;&gt;&gt; Base.metadata.create_all(engine)
+<span class="out">CREATE TABLE authors (
+	id INTEGER NOT NULL,
+	name VARCHAR NOT NULL,
+	PRIMARY KEY (id)
+)
+CREATE TABLE articles (
+	id INTEGER NOT NULL,
+	title VARCHAR NOT NULL,
+	author_id INTEGER NOT NULL,
+	PRIMARY KEY (id),
+	FOREIGN KEY(author_id) REFERENCES authors (id)
+)
+COMMIT</span></code></pre>
+<p>Each echo line really starts with a timestamp and <code>INFO sqlalchemy.engine.Engine</code>; they are cut here. Look at <code>name VARCHAR NOT NULL</code>: you never wrote NOT NULL. <code>Mapped[str]</code> did (section 5). There is no <code>articles</code> or <code>author</code> column either: a relationship is not a column.</p>
+
+<div class="step"><span class="num">4</span><h3>Add three authors and six articles</h3></div>
+<pre><code>&gt;&gt;&gt; s = Session(engine)
+&gt;&gt;&gt; ann, bob, cat = Author(name="Ann"), Author(name="Bob"), Author(name="Cat")
+&gt;&gt;&gt; s.add_all([Article(title=f"Post {i}", author=a) for i, a in enumerate([ann, bob, cat, ann, bob, cat], 1)])
+&gt;&gt;&gt; s.commit()
+<span class="out">BEGIN (implicit)
+INSERT INTO authors (name) VALUES (?) RETURNING id</span>   <span class="c"># three times</span><span class="out">
+INSERT INTO articles (title, author_id) VALUES (?, ?) RETURNING id</span>   <span class="c"># six times</span><span class="out">
+COMMIT</span></code></pre>
+<p>You added only articles, and never set an <code>author_id</code>. The session found the authors through the relationship, inserted them <b>first</b>, and used their new ids for the articles: parents before children, the unit of work from section 6. Nothing was sent until <code>commit()</code>.</p>
+
+<div class="step"><span class="num">5</span><h3>Change a title, and watch the UPDATE write itself</h3></div>
+<pre><code>&gt;&gt;&gt; a = s.get(Article, 1)
+<span class="out">BEGIN (implicit)
+SELECT articles.id AS articles_id, articles.title AS articles_title, articles.author_id AS articles_author_id
+FROM articles
+WHERE articles.id = ?</span>
+&gt;&gt;&gt; a.title = "Hello, world"
+&gt;&gt;&gt; s.commit()
+<span class="out">UPDATE articles SET title=? WHERE articles.id = ?
+COMMIT</span></code></pre>
+<p>The assignment printed nothing: it only changed an object. The UPDATE appeared at <code>commit()</code>, written from what you changed, with the values as bound parameters (the <code>?</code>), never pasted into the SQL.</p>
+
+<div class="step"><span class="num">6</span><h3>One row, one object</h3></div>
+<pre><code>&gt;&gt;&gt; sent()                      <span class="c"># starts the count from zero; ignore this number</span>
+<span class="out">17</span>
+&gt;&gt;&gt; a = s.get(Article, 2)
+<span class="out">SELECT articles.id AS articles_id, ... WHERE articles.id = ?</span>
+&gt;&gt;&gt; b = s.get(Article, 2)
+&gt;&gt;&gt; a is b
+<span class="out">True</span>
+&gt;&gt;&gt; sent()
+<span class="out">1</span></code></pre>
+<p>Two calls, one SELECT, and the <b>same</b> object: the identity map (section 7). The second <code>get</code> did not go to the database at all.</p>
+
+<div class="step"><span class="num">7</span><h3>The four lines from the video — predict first</h3></div>
+<p>Six articles by three authors. Before you press Enter twice, write down how many statements you expect. Then:</p>
+<pre><code>&gt;&gt;&gt; s.close(); s = Session(engine); sent()   <span class="c"># a fresh session, and the count back to zero</span>
+&gt;&gt;&gt; for a in s.scalars(select(Article)):
+...     print(a.title, a.author.name)
+...
+<span class="out">SELECT articles.id, articles.title, articles.author_id FROM articles
+SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors WHERE authors.id = ?</span>
+Hello, world Ann
+Post 4 Ann
+<span class="out">SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors WHERE authors.id = ?</span>
+Post 2 Bob
+Post 5 Bob
+<span class="out">SELECT authors.id AS authors_id, authors.name AS authors_name FROM authors WHERE authors.id = ?</span>
+Post 3 Cat
+Post 6 Cat
+&gt;&gt;&gt; sent()
+<span class="out">4</span></code></pre>
+<p>Watch where the SELECTs fall: <b>between</b> the printed lines. Each one fires the moment <code>a.author</code> is first touched. And it is 4, not 7: one for the list, then one per <b>distinct</b> author. Ann's second article found Ann already in the session. That is section 8's eleven, in miniature: with six authors you would have seen 7.</p>
+
+<div class="step"><span class="num">8</span><h3>Fix it, twice</h3></div>
+<pre><code>&gt;&gt;&gt; s.close(); s = Session(engine); sent()
+&gt;&gt;&gt; for a in s.scalars(select(Article).options(joinedload(Article.author))):
+...     print(a.title, a.author.name)
+...
+<span class="out">SELECT articles.id, articles.title, articles.author_id, authors_1.id AS id_1, authors_1.name
+FROM articles LEFT OUTER JOIN authors AS authors_1 ON authors_1.id = articles.author_id</span>
+<span class="c">(the six lines print, with no SQL between them)</span>
+&gt;&gt;&gt; sent()
+<span class="out">1</span></code></pre>
+<p>Now run the same with <code>selectinload(Article.author)</code> in place of <code>joinedload</code>, in a fresh session again. You get two statements, the second one <code>... WHERE authors.id IN (?, ?, ?)</code>, and <code>sent()</code> says 2. The loop never changed; only the question did.</p>
+
+<div class="step"><span class="num">9</span><h3>Make an accidental lazy load loud</h3></div>
+<pre><code>&gt;&gt;&gt; s.close(); s = Session(engine)
+&gt;&gt;&gt; a = s.scalars(select(Article).options(raiseload(Article.author))).first()
+&gt;&gt;&gt; a.author
+<span class="out">sqlalchemy.exc.InvalidRequestError: 'Article.author' is not available due to lazy='raise'</span></code></pre>
+<p>In a test suite, this turns a silent extra query into a failing test (section 10).</p>
+
+<div class="step"><span class="num">10</span><h3>Meet the ghost</h3></div>
+<pre><code>&gt;&gt;&gt; s.close(); s = Session(engine)
+&gt;&gt;&gt; a = s.get(Article, 1)
+&gt;&gt;&gt; s.commit()
+&gt;&gt;&gt; s.close()
+&gt;&gt;&gt; a.title
+<span class="out">sqlalchemy.orm.exc.DetachedInstanceError: Instance &lt;Article at 0x...&gt; is not bound to a Session;
+attribute refresh operation cannot proceed</span></code></pre>
+<p>The commit expired <code>a</code>'s attributes, so reading <code>a.title</code> needs the database again, and the session that could ask is closed. The object in your hand is a ghost. Two ways out: read what you need before the session closes, or open it as <code>Session(engine, expire_on_commit=False)</code>, and then <code>a.title</code> still works after <code>close()</code>.</p>
+
+<div class="step"><span class="num">11</span><h3>One statement for many rows</h3></div>
+<pre><code>&gt;&gt;&gt; s = Session(engine)
+&gt;&gt;&gt; r = s.execute(update(Article).where(Article.author_id == 1).values(title="Draft"))
+<span class="out">BEGIN (implicit)
+UPDATE articles SET title=? WHERE articles.author_id = ?</span>
+&gt;&gt;&gt; r.rowcount
+<span class="out">2</span>
+&gt;&gt;&gt; s.commit()
+<span class="out">COMMIT</span></code></pre>
+<p>Both of Ann's articles changed, no object was loaded, and one UPDATE did it: Core inside the same session (section 4). Type <code>exit()</code> to leave Python. To start the whole exercise over, delete <code>blog.db</code>.</p>
+
+<h3>Bonus — the same in Flask (ten minutes)</h3>
+<p>In a web app, the session belongs to one request. Flask-SQLAlchemy sets that up, and it can also count each request's statements so you can watch N+1 in the browser.</p>
+
+<div class="step"><span class="num">12</span><h3>Install Flask and Flask-SQLAlchemy</h3></div>
+<pre><code>pip install flask flask-sqlalchemy</code></pre>
+
+<div class="step"><span class="num">13</span><h3>Save <code>blog_app.py</code></h3></div>
+<pre><code><span class="k">from</span> flask <span class="k">import</span> Flask, request
+<span class="k">from</span> flask_sqlalchemy <span class="k">import</span> SQLAlchemy
+<span class="k">from</span> flask_sqlalchemy.record_queries <span class="k">import</span> get_recorded_queries
+<span class="k">from</span> sqlalchemy <span class="k">import</span> ForeignKey, select
+<span class="k">from</span> sqlalchemy.orm <span class="k">import</span> DeclarativeBase, Mapped, mapped_column, relationship, selectinload
+
+
+<span class="k">class</span> Base(DeclarativeBase):
+    <span class="k">pass</span>
+
+
+db = SQLAlchemy(model_class=Base)
+app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///blog_app.db"   <span class="c"># created in instance/</span>
+app.config["SQLALCHEMY_RECORD_QUERIES"] = True                    <span class="c"># count each request's SQL</span>
+db.init_app(app)
+
+
+<span class="k">class</span> Author(db.Model):
+    __tablename__ = "authors"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    articles: Mapped[list["Article"]] = relationship(back_populates="author")
+
+
+<span class="k">class</span> Article(db.Model):
+    __tablename__ = "articles"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    author_id: Mapped[int] = mapped_column(ForeignKey("authors.id"))
+    author: Mapped[Author] = relationship(back_populates="articles")
+
+
+<span class="k">with</span> app.app_context():
+    db.create_all()
+    <span class="k">if</span> db.session.scalar(select(Article).limit(1)) <span class="k">is</span> None:     <span class="c"># add the data only once</span>
+        ann, bob, cat = Author(name="Ann"), Author(name="Bob"), Author(name="Cat")
+        db.session.add_all([Article(title=f"Post {i}", author=a)
+                            <span class="k">for</span> i, a <span class="k">in</span> enumerate([ann, bob, cat, ann, bob, cat], 1)])
+        db.session.commit()
+
+
+@app.route("/")
+<span class="k">def</span> index():
+    query = select(Article)
+    <span class="k">if</span> request.args.get("eager"):
+        query = query.options(selectinload(Article.author))
+    lines = [f"{a.title} by {a.author.name}" <span class="k">for</span> a <span class="k">in</span> db.session.scalars(query)]
+    lines.append(f"&lt;b&gt;Statements this request: {len(get_recorded_queries())}&lt;/b&gt;")
+    <span class="k">return</span> "&lt;br&gt;".join(lines)</code></pre>
+
+<div class="step"><span class="num">14</span><h3>Run it, and count in the browser</h3></div>
+<pre><code>flask --app blog_app run --debug</code></pre>
+<p>Open <a href="http://127.0.0.1:5000/">http://127.0.0.1:5000/</a>. Six lines, and at the bottom <b>Statements this request: 4</b>: the same N+1 as step 7, now inside a request. Open <a href="http://127.0.0.1:5000/?eager=1">http://127.0.0.1:5000/?eager=1</a> and it says <b>2</b>. Reload either page as often as you like: the count stays the same, because every request gets a fresh session that Flask-SQLAlchemy closes when the response is sent. The database file is in a new <code>instance/</code> folder, where Flask-SQLAlchemy puts a relative SQLite path. Stop the server with Ctrl+C.</p>
+
+<div class="card">
+  <p><b>What you just saw, by hand.</b> The class wrote the schema (3). The session ordered the INSERTs (4) and wrote the UPDATE (5). One row was one object (6). A dot ran a query, and the count was 1 + distinct authors (7). One option fixed it without touching the loop (8). A lazy load can be made to fail loudly (9). A closed session leaves ghosts (10). And when you need it, one statement still does the work of many (11).</p>
+</div>
+
+<footer>
+  <p><b>Test yourself:</b> <a href="https://kuantor.github.io/drills/python-orms.html">the ORMs drill</a>, with the answers behind each card.</p>
+  <p>Ship It Live! is a series on full-stack Python, made by Anton and Claude · <a href="https://www.youtube.com/@MrKuant">YouTube</a> · <a href="index.html">All notes</a> · <a href="https://kuantor.github.io/">kuantor.github.io</a></p>
+</footer>
+</main>
+</body>
+</html>
