@@ -246,7 +246,7 @@ select(Article).options(selectinload(Article.author))</code></pre>
 <p>Look at the right-hand column. The join sends one statement, but builds 100 authors out of 5,000 rows, each author's columns repeated fifty times across the network, and then thrown away in Python. That is also why SQLAlchemy makes you call <code>.unique()</code> on a joined collection: without it, the result raises <code>InvalidRequestError</code>. <code>selectinload</code> sends each author once and each article once. On a collection, one query is not automatically the cheaper one; what crosses the network is what costs.</p>
 
 <h2 id="catch"><span class="n">10</span>How to catch it</h2>
-<p class="video">Video: <code>echo=True</code> on slide 10</p>
+<p class="video">Video: <code>echo=True</code> on slide 11</p>
 <p>You will not spot N+1 by reading code. You spot it by looking at the SQL.</p>
 <ul>
   <li><b><code>create_engine(URL, echo=True)</code></b> prints every statement. A page that scrolls hundreds of near-identical SELECTs past you has one.</li>
