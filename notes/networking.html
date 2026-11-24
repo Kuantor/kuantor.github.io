@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Networking — the details | Ship It Live!</title>
+  <meta name="description" content="Notes to the video Networking Explained: the layers, ports, DNS by hand, where the time goes, CORS, Docker networking, subnets and reverse proxies.">
+  <meta property="og:title" content="Networking — the details">
+  <meta property="og:description" content="Notes to the video Networking Explained: a 1,067-byte page that took 197 ms, a 29-byte DNS question, and the address that breaks a first deploy.">
+  <meta property="og:image" content="https://kuantor.github.io/preview.jpg">
+  <meta property="og:url" content="https://kuantor.github.io/notes/networking.html">
+  <meta property="og:type" content="article">
+  <style>
+    :root {
+      --bg: #FBF7EE; --paper: #FFFDF8; --ink: #2A2418; --muted: #6E6350; --rule: #E4DAC5;
+      --gold: #A87A24; --terra: #B4582F; --teal: #3F7F76;
+      --code-bg: #262014; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A150E; --paper: #241D13; --ink: #F1EADA; --muted: #AC9F84; --rule: #4A3D22;
+        --gold: #C8A24B; --terra: #D0845A; --teal: #6FB0A6;
+        --code-bg: #120E09; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 17px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    main { max-width: 46rem; margin: 0 auto; padding: 3rem 1rem 4rem; }
+    header .kicker { color: var(--gold); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+    h1 { font: 700 2.6rem/1.1 Cambria, Georgia, serif; margin: .3rem 0 .6rem; color: var(--gold); }
+    .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2rem; }
+    h2 { font: 700 1.6rem/1.25 Cambria, Georgia, serif; margin: 3rem 0 .4rem; color: var(--ink);
+         padding-top: 1rem; border-top: 1px solid var(--rule); }
+    h2 .n { color: var(--gold); margin-right: .4rem; }
+    h3 { font-size: 1.05rem; margin: 1.6rem 0 .3rem; color: var(--gold); }
+    .video { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    a { color: var(--gold); }
+    code { font: .88em/1.4 Consolas, "Cascadia Mono", monospace; background: var(--paper);
+           border: 1px solid var(--rule); border-radius: 4px; padding: 0 .25em; }
+    pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 1rem 1.1rem;
+          overflow-x: auto; font: .85rem/1.5 Consolas, "Cascadia Mono", monospace; }
+    pre code { background: none; border: none; padding: 0; color: inherit; }
+    pre .c { color: var(--code-dim); } pre .k { color: var(--code-gold); }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .card { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--gold);
+            border-radius: 6px; padding: .8rem 1rem; margin: 1rem 0; }
+    .card.warn { border-left-color: var(--terra); }
+    .card p { margin: .3rem 0; }
+    .big { font: 700 3rem/1 Cambria, Georgia, serif; color: var(--terra); }
+    nav.toc { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: .8rem 1.2rem; }
+    nav.toc ol { margin: .3rem 0; padding-left: 1.4rem; columns: 2; column-gap: 2rem; }
+    nav.toc li { break-inside: avoid; }
+    footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+    .step { display: grid; grid-template-columns: 2.2rem 1fr; gap: .2rem .8rem; margin: 1.6rem 0 .4rem; align-items: baseline; }
+    .step .num { background: var(--gold); color: var(--bg); border-radius: 50%; width: 2rem; height: 2rem;
+                 display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+    .step h3 { margin: 0; color: var(--ink); font-size: 1.1rem; }
+    .os { color: var(--muted); font-size: .85rem; margin: .6rem 0 -.6rem; }
+    pre .out { color: var(--code-dim); }
+    @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 2rem; } td.num { white-space: normal; } }
+  </style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">Ship It Live! · notes to the video</p>
+  <h1>Networking — the details</h1>
+  <p class="lede">The video <i>Networking Explained</i> keeps to one request and the traps around it, in about seven minutes. This page has what did not fit: the layers, ports and private addresses, TCP against UDP, HTTP as plain text, WebSockets, Docker networking, cloud subnets and reverse proxies, in the order the video goes. It ends with the script behind every number, and its output.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#need">Do you need this?</a></li>
+    <li><a href="#steps">One request, five steps</a></li>
+    <li><a href="#layers">The layers</a></li>
+    <li><a href="#ports">Addresses and ports</a></li>
+    <li><a href="#dns">DNS: names into numbers</a></li>
+    <li><a href="#tcp-udp">TCP or UDP</a></li>
+    <li><a href="#time">Where the time goes</a></li>
+    <li><a href="#tls">TLS: privacy and proof</a></li>
+    <li><a href="#http">HTTP is text</a></li>
+    <li><a href="#keep">Keep the connection</a></li>
+    <li><a href="#distance">Distance is milliseconds</a></li>
+    <li><a href="#timeout">Always set a timeout</a></li>
+    <li><a href="#cors">CORS</a></li>
+    <li><a href="#websockets">WebSockets and server-sent events</a></li>
+    <li><a href="#binding">localhost or 0.0.0.0</a></li>
+    <li><a href="#docker">Docker networking</a></li>
+    <li><a href="#subnets">Public and private subnets</a></li>
+    <li><a href="#proxies">Reverse proxies and load balancers</a></li>
+    <li><a href="#need-to-know">What you actually need to know</a></li>
+    <li><a href="#bench">Run it yourself</a></li>
+  </ol>
+</nav>
+
+<h2 id="need"><span class="n">1</span>Do you need this?</h2>
+<p class="video">Video: slide 1</p>
+<p>Yes, though not with the depth of a network engineer or a systems administrator. Networking is what bridges code that runs on your laptop and an application running in production, and it shows up in three places:</p>
+<ul>
+  <li><b>Frontend to backend.</b> Full stack is client and server by definition, so you live in HTTP: methods, headers, status codes, JSON. You will meet CORS, and you will need to know when a request should become a WebSocket.</li>
+  <li><b>Containers and cloud.</b> Applications run in containers now, so you need to know how containers reach each other, what a port mapping means, 0.0.0.0 against 127.0.0.1, and public against private subnets.</li>
+  <li><b>Security and performance.</b> You own the data in transit and the user's wait: how TLS and certificates work, what a reverse proxy or a load balancer does, and why round trips matter more than bandwidth.</li>
+</ul>
+
+<h2 id="steps"><span class="n">2</span>One request, five steps</h2>
+<p class="video">Video: slide 2</p>
+<ol>
+  <li><b>Find the address: DNS.</b> A name like example.com means nothing to a router, so it has to become a number.</li>
+  <li><b>Open a connection: TCP.</b> A three-message handshake, so both ends agree they are talking. One round trip.</li>
+  <li><b>Agree on secrecy: TLS.</b> Prove the server is who it says it is, and agree encryption keys. At least one more round trip.</li>
+  <li><b>Ask and answer: HTTP.</b> Send the request as text, and wait for the response.</li>
+  <li><b>Keep it or close it.</b> Reuse the connection for the next request, or pay for steps 2 and 3 all over again.</li>
+</ol>
+<p>Three of the five are waiting for a reply from somewhere else. That is where the time goes (section 7).</p>
+
+<h2 id="layers"><span class="n">3</span>The layers</h2>
+<p>Those steps live in layers. Each layer does one job and trusts the one below it to do the rest.</p>
+<table>
+  <tr><th>Layer</th><th>Its job</th><th>Where you meet it in Python</th></tr>
+  <tr><td>HTTP</td><td>what you are asking for</td><td><code>requests</code>, <code>http.client</code>, Flask</td></tr>
+  <tr><td>TLS</td><td>privacy, and proof of identity</td><td><code>ssl</code>, inside <code>requests</code> where you never see it</td></tr>
+  <tr><td>TCP / UDP</td><td>a reliable ordered stream, or single packets with no promises</td><td><code>socket</code></td></tr>
+  <tr><td>IP</td><td>gets a packet to the right machine</td><td><code>socket</code>, the bottom of it all</td></tr>
+</table>
+<div class="card"><p>A single <code>requests.get</code> on an https address uses all four layers, which is exactly why it can fail in four different ways. A <code>ConnectionError</code>, an <code>SSLError</code> and a 500 status are three different layers telling you three different things. Reading which one you got is the first step of every network debugging session.</p></div>
+
+<h2 id="ports"><span class="n">4</span>Addresses and ports</h2>
+<p>The address picks the machine. The port picks the program on that machine.</p>
+<table>
+  <tr><th>Port</th><th>Who listens there</th></tr>
+  <tr><td class="num">22</td><td>SSH</td></tr>
+  <tr><td class="num">53</td><td>DNS</td></tr>
+  <tr><td class="num">80 / 443</td><td>HTTP / HTTPS</td></tr>
+  <tr><td class="num">5000</td><td>Flask's development server</td></tr>
+  <tr><td class="num">8000</td><td>Django, Uvicorn, Gunicorn</td></tr>
+  <tr><td class="num">5432 / 3306 / 6379</td><td>PostgreSQL / MySQL / Redis</td></tr>
+</table>
+<p>A connection is actually four numbers: your address and port, and theirs. That is how one server holds thousands of connections on the same port 443 at the same time: every one has a different pair at your end.</p>
+<p>Some addresses are <b>private</b>: <code>10.x.x.x</code>, <code>172.16</code> to <code>172.31</code>, and <code>192.168.x.x</code>. Your laptop almost certainly has one. Your home router swaps it for a single public address on the way out, so a server on the internet never sees the private one.</p>
+<div class="card warn"><p><b>"Address already in use"</b> almost always means something is already listening on that port. Usually it is the dev server you started an hour ago and forgot.</p></div>
+
+<h2 id="dns"><span class="n">5</span>DNS: names into numbers</h2>
+<p class="video">Video: slide 3</p>
+<p>The script builds a DNS question by hand and sends it as one UDP packet to 1.1.1.1, Cloudflare's public resolver. This is the whole question, 29 bytes:</p>
+<pre><code><span class="k">00 01 01 00 00 01 00 00 00 00 00 00</span>   <span class="c"># 12: header: an id, "please recurse", one question</span>
+07 65 78 61 6d 70 6c 65 03 63 6f 6d 00  <span class="c"># 13: 7 · example · 3 · com · end</span>
+<span class="k">00 01 00 01</span>                              <span class="c"># 4: type A (an IPv4 address), class IN</span></code></pre>
+<p>61 bytes came back: two addresses for example.com, each with a TTL (time to live) of 291 seconds, which is how long anyone may cache the answer. The round trip to the resolver took 4.0 ms; the operating system's own cache answered in 0.5 ms.</p>
+<div class="card"><p>The TTL is why a DNS change "takes time to propagate". It does not propagate: everybody holding the old answer keeps it until its TTL runs out. Most DNS questions never leave your machine at all.</p></div>
+
+<h2 id="tcp-udp"><span class="n">6</span>TCP or UDP</h2>
+<p>Two ways to send data, making opposite trades.</p>
+<ul>
+  <li><b>TCP is a phone call.</b> Connect first with a handshake, then an ordered, reliable stream: lost packets are resent, nothing arrives out of order. HTTP, HTTPS, SSH, every database connection and WebSockets run on TCP.</li>
+  <li><b>UDP is a postcard.</b> No connection, no promise: one packet out, maybe one back, which is all a DNS question needs. Voice and video calls use it, games use it, and so does QUIC, which carries HTTP/3.</li>
+</ul>
+<p>TCP's reliability costs a round trip before the first byte; UDP's speed costs the guarantees. HTTP/3 runs over UDP so that QUIC can set up the connection and the encryption together, in a single round trip.</p>
+
+<h2 id="time"><span class="n">7</span>Where the time goes</h2>
+<p class="video">Video: slide 4</p>
+<p>One HTTPS request for example.com, timed phase by phase. Median of eight runs, 2 October 2026.</p>
+<table>
+  <tr><th>Phase</th><th>Median</th><th>Range</th></tr>
+  <tr><td>DNS, from the cache</td><td class="num">0.5 ms</td><td class="num">0.3–18.9</td></tr>
+  <tr><td>TCP connect</td><td class="num">40.5 ms</td><td class="num">33.6–47.1</td></tr>
+  <tr><td>TLS handshake</td><td class="num">56.9 ms</td><td class="num">54.6–70.6</td></tr>
+  <tr><td>Request → first byte back</td><td class="num">97.1 ms</td><td class="num">92.0–100.1</td></tr>
+  <tr><td>The rest of the page</td><td class="num">under 0.1 ms</td><td class="num">0.0–0.1</td></tr>
+  <tr><td><b>Total</b></td><td class="num"><b>197.4 ms</b></td><td class="num">184.2–233.3</td></tr>
+</table>
+<p>The page is 1,067 bytes. Almost none of the 197 ms was downloading; it was waiting for replies. A faster connection would barely change this number. Fewer round trips would change it a lot (section 10). The 18.9 ms at the top of the DNS range is one lookup that missed the cache.</p>
+<div class="card"><p><b>Why 97 ms to the first byte?</b> On an already-open connection the same request came back in about 43 ms (section 10). The response was a cache hit at Cloudflare, so the extra time on a fresh connection is not the origin server; from this laptop it cannot be pinned down further.</p></div>
+
+<h2 id="tls"><span class="n">8</span>TLS: privacy and proof</h2>
+<p class="video">Video: slide 5</p>
+<table>
+  <tr><th></th><th>example.com, measured</th></tr>
+  <tr><td>Protocol</td><td>TLS 1.3</td></tr>
+  <tr><td>Cipher</td><td>AES-256-GCM</td></tr>
+  <tr><td>Certificate for</td><td>example.com</td></tr>
+  <tr><td>Issued by</td><td>SSL Corporation</td></tr>
+  <tr><td>Valid until</td><td>25 December 2026</td></tr>
+  <tr><td>Handshake</td><td class="num">56.9 ms</td></tr>
+</table>
+<p>A certificate proves that this server holds the private key for this name, vouched for by a certificate authority your operating system already trusts. You get one by proving to an authority that you control the domain; Let's Encrypt does it free and automatically. TLS 1.3 completes its handshake in one round trip, where TLS 1.2 needed two.</p>
+<div class="card warn"><p><code>verify=False</code> does not fix a certificate error. It switches off the half of TLS that tells you who you are talking to.</p></div>
+
+<h2 id="http"><span class="n">9</span>HTTP is text</h2>
+<p>The request the script sent, exactly: 82 bytes. You could type it by hand.</p>
+<pre><code>GET / HTTP/1.1
+Host: example.com
+User-Agent: net_bench.py
+Connection: close</code></pre>
+<p>And the response: 1,067 bytes, 342 of headers and 725 of page.</p>
+<pre><code>HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Connection: close
+Server: cloudflare</code></pre>
+<p>Two things to know cold:</p>
+<ul>
+  <li><b>Methods.</b> GET reads, POST creates, PUT replaces, DELETE removes. GET must never change anything: browsers, caches and crawlers repeat GETs whenever they like.</li>
+  <li><b>Status codes, by the first digit.</b> 2xx it worked; 3xx look somewhere else; 4xx the request was wrong (the client's side); 5xx the server failed (our side).</li>
+</ul>
+<p>An API that returns JSON says so in its <code>Content-Type</code> header, but the body is still text. Every Python web framework is building and parsing exactly these lines.</p>
+
+<h2 id="keep"><span class="n">10</span>Keep the connection</h2>
+<p class="video">Video: slide 6</p>
+<table>
+  <tr><th></th><th>Ten requests</th><th>Per request</th></tr>
+  <tr><td>Ten new connections</td><td class="num">1,304 ms</td><td class="num">130.4 ms</td></tr>
+  <tr><td>One kept-alive connection</td><td class="num">432 ms</td><td class="num">43.2 ms</td></tr>
+</table>
+<p>Three times faster, without changing the requests. Each new connection pays for TCP and TLS again; a reused one pays once.</p>
+<pre><code><span class="c"># ten requests, ten connections</span>
+<span class="k">for</span> url <span class="k">in</span> urls:
+    r = requests.get(url)
+
+<span class="c"># ten requests, one connection</span>
+<span class="k">with</span> requests.Session() <span class="k">as</span> s:
+    <span class="k">for</span> url <span class="k">in</span> urls:
+        r = s.get(url)</code></pre>
+<p>You already rely on this: <code>requests.Session()</code> keeps connections open, a database connection pool does the same for your queries (the GIL talk counts how many pools your workers hold), and browsers do it for every page.</p>
+
+<h2 id="distance"><span class="n">11</span>Distance is milliseconds</h2>
+<p class="video">Video: slide 7</p>
+<p>Light in fiber covers about 100 km of distance for every millisecond of round trip, so a round trip puts an upper bound on how far away the other end can be.</p>
+<table>
+  <tr><th>One TCP round trip to</th><th>Median</th><th>So it is at most</th></tr>
+  <tr><td>this laptop (127.0.0.1)</td><td class="num">0.28 ms</td><td>no distance: the operating system's own time</td></tr>
+  <tr><td>nearest Cloudflare server (1.1.1.1)</td><td class="num">1.65 ms</td><td>~165 km away</td></tr>
+  <tr><td>example.com, port 443</td><td class="num">23.75 ms</td><td>~2,375 km away</td></tr>
+</table>
+<p>The middle row is what a CDN is: copies of the content, placed near the people who ask for it. And a whole HTTP request to a server on this laptop took 2.10 ms; the real page in section 7 took 94 times as long. Everything feels instant in development because nothing is far away, and that is where the ORMs talk's N+1 problem hides: a hundred queries on a laptop is nothing, a hundred round trips to a real database is not.</p>
+<div class="card"><p><b>Why is example.com so much slower than 1.1.1.1, when both are Cloudflare?</b> From this laptop, a TCP connect to example.com's address took about 2 ms on port 80 and about 24 ms on port 443, so something on this network path treats port 443 to that address differently. It is visible in the measurements and not explainable from here, which is why these are upper bounds, not distances.</p></div>
+
+<h2 id="timeout"><span class="n">12</span>Always set a timeout</h2>
+<p class="video">Video: slide 8</p>
+<table>
+  <tr><th>Connecting to an address that never answers</th><th>Gave up after</th></tr>
+  <tr><td><code>timeout=2</code></td><td class="num">2.0 s</td></tr>
+  <tr><td>no timeout (Python's default)</td><td class="num">21.0 s</td></tr>
+</table>
+<p><code>socket.getdefaulttimeout()</code> is <code>None</code>, and None means "as long as the system will": Windows gave up after 21 seconds, and Linux, by default, waits about two minutes. <code>requests</code> has no default timeout either; pass one, as a pair:</p>
+<pre><code>requests.get(url, timeout=(<span class="k">3</span>, <span class="k">10</span>))   <span class="c"># 3 s to connect, 10 s to read</span></code></pre>
+<div class="card warn"><p>One slow upstream service without a timeout ties up every worker that calls it. Then there are no workers left, and the whole site is down because of somebody else's outage. A timeout turns "the site is frozen" into "one call failed". requests' own documentation says nearly all production code should pass one.</p></div>
+
+<h2 id="cors"><span class="n">13</span>CORS</h2>
+<p class="video">Video: slide 9</p>
+<p>An <b>origin</b> is three things: the scheme, the host and the port. So <code>http://localhost:3000</code> and <code>http://localhost:5000</code> are different origins, which is your React frontend and your Flask API on one laptop, on day one.</p>
+<p>The browser will not let a page read a response from another origin unless that server says it may. curl and Python never hit CORS: it is a browser rule, and it protects the browser's user, not your server. Your API received the request either way.</p>
+<pre><code><span class="c"># the API answers, naming who may read it</span>
+Access-Control-Allow-Origin: http://localhost:3000</code></pre>
+<ul>
+  <li><b>The preflight.</b> For a JSON POST the browser first asks permission with a separate OPTIONS request, which is why DevTools shows two requests.</li>
+  <li><b>With cookies</b>, name the origin exactly: a wildcard <code>*</code> is refused once credentials are involved.</li>
+  <li><b>In Flask</b>, the flask-cors extension sets these headers in two lines.</li>
+</ul>
+<div class="card"><p>Fix CORS on the server that owns the data. A frontend cannot grant itself permission.</p></div>
+
+<h2 id="websockets"><span class="n">14</span>WebSockets and server-sent events</h2>
+<p>HTTP is ask, answer, done. Some features need the server to speak first: a chat message arriving, a live dashboard, a collaborator's cursor.</p>
+<p>A WebSocket starts as an ordinary HTTP request with an <code>Upgrade</code> header. The server answers <code>101 Switching Protocols</code>, and from then on the same TCP connection carries messages in both directions for as long as both ends want.</p>
+<table>
+  <tr><th>Use</th><th>For</th></tr>
+  <tr><td>HTTP</td><td>pages, API calls, forms</td></tr>
+  <tr><td>WebSockets</td><td>chat, live collaboration, games</td></tr>
+  <tr><td>Server-sent events</td><td>when only the server needs to talk: one way, plain HTTP, so it passes every proxy that HTTP does</td></tr>
+</table>
+<p>KuantorFlow streams its AI companion's replies with server-sent events. One Python catch: WSGI cannot hold a connection open, so WebSockets need ASGI (the Async talk).</p>
+
+<h2 id="binding"><span class="n">15</span>localhost or 0.0.0.0</h2>
+<p class="video">Video: slide 10</p>
+<table>
+  <tr><th>Server bound to</th><th>Reached via 127.0.0.1</th><th>Via the laptop's own address</th></tr>
+  <tr><td><code>127.0.0.1</code></td><td>connected</td><td>failed</td></tr>
+  <tr><td><code>0.0.0.0</code></td><td>connected</td><td>connected</td></tr>
+</table>
+<ul>
+  <li><b><code>127.0.0.1</code> means this machine only.</b> Flask's <code>app.run()</code>, Gunicorn and Uvicorn all default to it. Inside a container, 127.0.0.1 means the container itself, so traffic arriving through the published port has nothing listening for it: the first Docker deploy starts, the logs look fine, and it cannot be reached.</li>
+  <li><b><code>0.0.0.0</code> means every network the machine is on.</b> That is what a container needs: <code>gunicorn -b 0.0.0.0:8000</code>.</li>
+</ul>
+<div class="card warn"><p>On your laptop, 0.0.0.0 shows your dev server to the whole café Wi-Fi. And Flask's debugger is a Python shell in the browser: bound to 0.0.0.0, that shell is open to everyone on the network.</p></div>
+
+<h2 id="docker"><span class="n">16</span>Docker networking</h2>
+<pre><code>services:
+  web:
+    build: .
+    ports:
+      - <span class="k">"8000:8000"</span>          <span class="c"># host:container</span>
+    environment:
+      DATABASE_URL: postgresql://app:${DB_PASSWORD}@<span class="k">db</span>:5432/app
+  db:
+    image: postgres:16     <span class="c"># no ports: nobody outside should reach it</span></code></pre>
+<ul>
+  <li><b>Inside a container, localhost is the container.</b> Not your laptop, and not the database container next to it.</li>
+  <li><b>Containers find each other by name.</b> On a Compose network, Docker runs its own DNS that turns the service name into an address: the host in <code>DATABASE_URL</code> is the word <code>db</code>.</li>
+  <li><b><code>8000:8000</code> is host:container.</b> The left number is the port on your machine, the right one inside the container, and they do not have to match. Publish only what must be reached.</li>
+</ul>
+<p>So when a container says "connection refused to localhost:5432", it is looking for Postgres inside its own container. Change one word to <code>db</code>.</p>
+
+<h2 id="subnets"><span class="n">17</span>Public and private subnets</h2>
+<p>In the cloud, the question is not only whether a server works, but who can reach it at all. The usual shape has three tiers:</p>
+<ol>
+  <li><b>Public subnet:</b> only the load balancer, with a public address. Your domain's DNS points at it; it is the single front door.</li>
+  <li><b>Private subnet, the app:</b> app servers with private addresses only. The load balancer reaches their port 8000; the internet cannot reach them at all.</li>
+  <li><b>Private subnet, the data:</b> the database, no public address, and firewall rules that admit only the app servers, on 5432.</li>
+</ol>
+<p>Each tier accepts traffic only from the tier in front of it: the Compose file's idea again, publish only what must be reached. AWS, Google Cloud and DigitalOcean name the pieces differently; the shape is the same.</p>
+
+<h2 id="proxies"><span class="n">18</span>Reverse proxies and load balancers</h2>
+<p>In front of the app servers sits a reverse proxy, such as Nginx or Traefik, doing four jobs Python should not:</p>
+<ul>
+  <li><b>It ends HTTPS:</b> it holds the certificate, and the hop to your app is plain HTTP inside the private network.</li>
+  <li><b>It serves static files</b>, quickly, so a Python worker is never spent on a logo.</li>
+  <li><b>It routes</b> by hostname or path: <code>/api</code> to one service, everything else to another.</li>
+  <li><b>It spreads the load</b> across Gunicorn workers and machines, and stops sending to one that has failed.</li>
+</ul>
+<div class="card warn"><p><b>The catch:</b> your app now sees the proxy, not the user, and <code>request.remote_addr</code> becomes the proxy's address. Werkzeug's <code>ProxyFix</code> reads the <code>X-Forwarded-For</code> header to recover the real one, but configure it with the number of proxies you actually have: a client can send that header too, and trusting more hops than exist lets it choose its own address.</p></div>
+
+<h2 id="need-to-know"><span class="n">19</span>What you actually need to know</h2>
+<table>
+  <tr><th>Level</th><th>Topic</th><th>Key concepts</th><th>Here</th></tr>
+  <tr><td>Must know</td><td>Web protocols</td><td>HTTP and HTTPS, REST, CORS, JSON, status codes, WebSockets</td><td>9, 13, 14</td></tr>
+  <tr><td>Must know</td><td>IP and ports</td><td>IPv4, localhost vs 0.0.0.0, port mapping, DNS basics</td><td>4, 5, 15, 16</td></tr>
+  <tr><td>Should know</td><td>Transport and security</td><td>TCP vs UDP, the TLS handshake, basic SSH</td><td>6, 8</td></tr>
+  <tr><td>Nice to have</td><td>Infrastructure</td><td>reverse proxies, load balancing, CDN caching</td><td>11, 17, 18</td></tr>
+</table>
+<p>Start at the top: the first row is the one you will use this week.</p>
+
+<h2 id="bench"><span class="n">20</span>Run it yourself</h2>
+<p>Every number in the video and on this page comes from <code>net_bench.py</code>: Python's standard library only, nothing to install. Run <code>python net_bench.py</code>; it takes about a minute and talks to example.com and 1.1.1.1. The figures are medians of eight runs from one laptop on 2 October 2026; your connection will give different numbers, which is the point.</p>
+<p>Two choices in it come from traps found while building it. It reports medians, because during testing one slow packet in eight tripled a mean. And on Windows a socket with a timeout waits via the system timer, whose tick is about 15.6 ms, so the script times its fast local requests without one (a 0.9 ms loopback request had measured 8.8 ms).</p>
+<pre><code># -*- coding: utf-8 -*-
+&quot;&quot;&quot;Take one HTTPS request apart, on this machine, with nothing but the stdlib.
+
+Every number the Networking talk quotes comes from this script. Each
+experiment runs RUNS times and reports the median and the range, because one
+network measurement on its own is an anecdote.
+
+    python net_bench.py
+
+  1. Anatomy   — one HTTPS request to example.com, phase by phase.
+  2. DNS       — a hand-built 29-byte query to a public resolver, over UDP.
+  3. HTTP      — the request and the response, as the bytes they really are.
+  4. Reuse     — ten requests on ten connections vs ten on one connection.
+  5. Distance  — one TCP round trip to localhost, a nearby CDN server and example.com.
+  6. Timeouts  — what a connect to nowhere does with, and without, a timeout.
+  7. Binding   — a server on 127.0.0.1 vs one on 0.0.0.0, reached two ways.
+
+example.com is reserved by IANA for documentation and examples; 1.1.1.1 is
+Cloudflare&#x27;s public DNS resolver. Nothing here sends anything about you.
+&quot;&quot;&quot;
+import http.client
+import http.server
+import socket
+import ssl
+import statistics as st
+import struct
+import threading
+import time
+
+HOST = &quot;example.com&quot;
+RESOLVER = (&quot;1.1.1.1&quot;, 53)
+RUNS = 8
+MS = 1000.0
+
+
+def ms(seconds):
+    return seconds * MS
+
+
+def summary(values, unit=&quot;ms&quot;, fmt=&quot;{:.1f}&quot;):
+    return (f&quot;{fmt.format(st.median(values))} {unit}  &quot;
+            f&quot;(range {fmt.format(min(values))}-{fmt.format(max(values))})&quot;)
+
+
+# ═══════════════════════════════════════════════════ 1. anatomy of a request
+REQUEST = (f&quot;GET / HTTP/1.1\r\nHost: {HOST}\r\n&quot;
+           f&quot;User-Agent: net_bench.py\r\nConnection: close\r\n\r\n&quot;).encode()
+
+
+def one_request():
+    &quot;&quot;&quot;Time each phase of one HTTPS request separately.&quot;&quot;&quot;
+    t = {}
+    t0 = time.perf_counter()
+    ip = socket.getaddrinfo(HOST, 443, socket.AF_INET, socket.SOCK_STREAM)[0][4][0]
+    t1 = time.perf_counter()
+    raw = socket.create_connection((ip, 443), timeout=10)
+    t2 = time.perf_counter()
+    tls = ssl.create_default_context().wrap_socket(raw, server_hostname=HOST)
+    t3 = time.perf_counter()
+    tls.sendall(REQUEST)
+    first = tls.recv(65536)
+    t4 = time.perf_counter()
+    body = first
+    while chunk := tls.recv(65536):
+        body += chunk
+    t5 = time.perf_counter()
+    info = {&quot;ip&quot;: ip, &quot;version&quot;: tls.version(), &quot;cipher&quot;: tls.cipher()[0],
+            &quot;cert&quot;: tls.getpeercert(), &quot;response&quot;: body}
+    tls.close()
+    t.update(dns=ms(t1 - t0), tcp=ms(t2 - t1), tls=ms(t3 - t2),
+             ttfb=ms(t4 - t3), body=ms(t5 - t4), total=ms(t5 - t0))
+    return t, info
+
+
+# ═══════════════════════════════════════════════════ 2. DNS, by hand
+def dns_query(name, qid):
+    &quot;&quot;&quot;A complete DNS question: 12-byte header, the name, type A, class IN.&quot;&quot;&quot;
+    header = struct.pack(&quot;&gt;HHHHHH&quot;, qid, 0x0100, 1, 0, 0, 0)   # recursion desired
+    qname = b&quot;&quot;.join(bytes([len(p)]) + p.encode() for p in name.split(&quot;.&quot;)) + b&quot;\0&quot;
+    return header + qname + struct.pack(&quot;&gt;HH&quot;, 1, 1)
+
+
+def skip_name(buf, i):
+    while True:
+        n = buf[i]
+        if n == 0:
+            return i + 1
+        if n &amp; 0xC0 == 0xC0:          # a compression pointer: two bytes, done
+            return i + 2
+        i += n + 1
+
+
+def dns_answers(buf):
+    qd, an = struct.unpack(&quot;&gt;HH&quot;, buf[4:8])
+    i = 12
+    for _ in range(qd):
+        i = skip_name(buf, i) + 4
+    out = []
+    for _ in range(an):
+        i = skip_name(buf, i)
+        rtype, _cls, ttl, rdlen = struct.unpack(&quot;&gt;HHIH&quot;, buf[i:i + 10])
+        i += 10
+        if rtype == 1 and rdlen == 4:
+            out.append((socket.inet_ntoa(buf[i:i + 4]), ttl))
+        i += rdlen
+    return out
+
+
+def dns_round_trip(qid):
+    q = dns_query(HOST, qid)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as u:
+        u.settimeout(5)
+        t0 = time.perf_counter()
+        u.sendto(q, RESOLVER)
+        resp, _ = u.recvfrom(512)
+        dt = time.perf_counter() - t0
+    return ms(dt), len(q), len(resp), dns_answers(resp)
+
+
+# ═══════════════════════════════════════════════════ 4. connection reuse
+def ten_new_connections():
+    t0 = time.perf_counter()
+    for _ in range(10):
+        c = http.client.HTTPSConnection(HOST, timeout=10)
+        c.request(&quot;GET&quot;, &quot;/&quot;, headers={&quot;Connection&quot;: &quot;close&quot;})
+        c.getresponse().read()
+        c.close()
+    return ms(time.perf_counter() - t0)
+
+
+def ten_on_one_connection():
+    t0 = time.perf_counter()
+    c = http.client.HTTPSConnection(HOST, timeout=10)
+    for _ in range(10):
+        c.request(&quot;GET&quot;, &quot;/&quot;)
+        c.getresponse().read()
+    c.close()
+    return ms(time.perf_counter() - t0)
+
+
+# ═══════════════════════════════════════════════════ 5. loopback vs internet
+class Quiet(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b&quot;&lt;h1&gt;hello from localhost&lt;/h1&gt;&quot;
+        self.send_response(200)
+        self.send_header(&quot;Content-Type&quot;, &quot;text/html&quot;)
+        self.send_header(&quot;Content-Length&quot;, str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+def plain_request(host, port):
+    # Deliberately NO timeout here, against the advice of experiment 6. On
+    # Windows a socket with a timeout waits via the system timer, whose tick is
+    # about 15.6 ms -- so a 0.9 ms loopback request was measured at 8.8 ms on
+    # average with timeout=10 (range 0.9-26.7). Over the internet the effect
+    # was within noise (checked: same phases, same 3x reuse figure either way),
+    # but at loopback speeds it swamps the thing being measured.
+    t0 = time.perf_counter()
+    c = http.client.HTTPConnection(host, port)
+    c.request(&quot;GET&quot;, &quot;/&quot;)
+    c.getresponse().read()
+    c.close()
+    return ms(time.perf_counter() - t0)
+
+
+def connect_ms(host, port):
+    &quot;&quot;&quot;One TCP handshake: the cleanest single round trip Python can time.&quot;&quot;&quot;
+    t0 = time.perf_counter()
+    socket.create_connection((host, port)).close()      # blocking, see plain_request
+    return ms(time.perf_counter() - t0)
+
+
+# ═══════════════════════════════════════════════════ 7. binding
+def bind_test(bind_addr, lan_ip):
+    &quot;&quot;&quot;Listen on bind_addr, then try to reach it via loopback and via the LAN address.&quot;&quot;&quot;
+    srv = socket.socket()
+    srv.bind((bind_addr, 0))
+    srv.listen()
+    port = srv.getsockname()[1]
+    result = {}
+    for label, target in ((&quot;via 127.0.0.1&quot;, &quot;127.0.0.1&quot;), (&quot;via its network address&quot;, lan_ip)):
+        try:
+            socket.create_connection((target, port), timeout=2).close()
+            result[label] = &quot;connected&quot;
+        except OSError as exc:
+            result[label] = f&quot;failed ({type(exc).__name__})&quot;
+    srv.close()
+    return result
+
+
+def lan_address():
+    &quot;&quot;&quot;This machine&#x27;s address on its network. A UDP connect sends nothing.&quot;&quot;&quot;
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as u:
+        u.connect(RESOLVER)
+        return u.getsockname()[0]
+
+
+# ═══════════════════════════════════════════════════ 6. timeouts
+def connect_to_nowhere(timeout):
+    t0 = time.perf_counter()
+    try:
+        socket.create_connection((&quot;10.255.255.1&quot;, 81), timeout=timeout)
+        outcome = &quot;connected?!&quot;
+    except OSError as exc:
+        outcome = type(exc).__name__
+    return time.perf_counter() - t0, outcome
+
+
+if __name__ == &quot;__main__&quot;:
+    print(f&quot;{RUNS} runs per experiment; times are median (range)\n&quot;)
+
+    # ── 1 ──────────────────────────────────────────────────────────────────
+    print(&quot;=&quot; * 72)
+    print(f&quot;1. One HTTPS request to {HOST}, phase by phase&quot;)
+    print(&quot;=&quot; * 72)
+    runs, info = [], None
+    for _ in range(RUNS):
+        t, info = one_request()
+        runs.append(t)
+    for key, label in ((&quot;dns&quot;, &quot;DNS lookup (OS cache)&quot;), (&quot;tcp&quot;, &quot;TCP connect&quot;),
+                       (&quot;tls&quot;, &quot;TLS handshake&quot;), (&quot;ttfb&quot;, &quot;request -&gt; first byte&quot;),
+                       (&quot;body&quot;, &quot;rest of the response&quot;), (&quot;total&quot;, &quot;TOTAL&quot;)):
+        print(f&quot;  {label:24} {summary([r[key] for r in runs])}&quot;)
+    head, _, body = info[&quot;response&quot;].partition(b&quot;\r\n\r\n&quot;)
+    cert = info[&quot;cert&quot;]
+    subject = dict(x[0] for x in cert[&quot;subject&quot;]).get(&quot;commonName&quot;)
+    issuer = dict(x[0] for x in cert[&quot;issuer&quot;]).get(&quot;organizationName&quot;)
+    print(f&quot;\n  server address  {info[&#x27;ip&#x27;]}   protocol {info[&#x27;version&#x27;]}   cipher {info[&#x27;cipher&#x27;]}&quot;)
+    print(f&quot;  certificate     for {subject!r}, issued by {issuer!r}, valid until {cert[&#x27;notAfter&#x27;]}&quot;)
+
+    # ── 2 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(f&quot;2. DNS by hand: one UDP packet to {RESOLVER[0]}, one back&quot;)
+    print(&quot;=&quot; * 72)
+    dns = [dns_round_trip(qid) for qid in range(1, RUNS + 1)]
+    print(f&quot;  round trip      {summary([d[0] for d in dns])}&quot;)
+    print(f&quot;  question        {dns[0][1]} bytes     answer {dns[0][2]} bytes&quot;)
+    print(f&quot;  answers         {&#x27;, &#x27;.join(f&#x27;{ip} (TTL {ttl} s)&#x27; for ip, ttl in dns[0][3])}&quot;)
+    print(f&quot;  the question, as bytes:\n    {dns_query(HOST, 1).hex(&#x27; &#x27;)}&quot;)
+
+    # ── 3 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(&quot;3. HTTP is text&quot;)
+    print(&quot;=&quot; * 72)
+    print(f&quot;  request: {len(REQUEST)} bytes&quot;)
+    for line in REQUEST.decode().split(&quot;\r\n&quot;)[:4]:
+        print(f&quot;    {line}&quot;)
+    print(f&quot;  response: {len(info[&#x27;response&#x27;]):,} bytes ({len(head) + 4} of headers, {len(body):,} of body)&quot;)
+    for line in head.decode().split(&quot;\r\n&quot;):
+        if line.split(&quot;:&quot;)[0] in (&quot;Content-Type&quot;, &quot;Server&quot;, &quot;CF-Cache-Status&quot;,
+                                  &quot;Connection&quot;) or line.startswith(&quot;HTTP/&quot;):
+            print(f&quot;    {line}&quot;)
+
+    # ── 4 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(&quot;4. Ten requests: ten connections vs one kept-alive connection&quot;)
+    print(&quot;=&quot; * 72)
+    new = [ten_new_connections() for _ in range(RUNS)]
+    one = [ten_on_one_connection() for _ in range(RUNS)]
+    print(f&quot;  ten connections       {summary(new)}   -&gt; {st.median(new) / 10:.1f} ms per request&quot;)
+    print(f&quot;  one connection        {summary(one)}   -&gt; {st.median(one) / 10:.1f} ms per request&quot;)
+    print(f&quot;  reuse is {st.median(new) / st.median(one):.1f}x faster&quot;)
+
+    # ── 5 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(&quot;5. Distance: one TCP round trip to three places&quot;)
+    print(&quot;=&quot; * 72)
+    srv = http.server.ThreadingHTTPServer((&quot;127.0.0.1&quot;, 0), Quiet)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    port = srv.server_address[1]
+    plain_request(&quot;127.0.0.1&quot;, port)                       # warm up once
+    targets = ((&quot;this laptop (127.0.0.1)&quot;, &quot;127.0.0.1&quot;, port),
+               (&quot;nearest Cloudflare server (1.1.1.1)&quot;, RESOLVER[0], 443),
+               (f&quot;{HOST}, port 443&quot;, HOST, 443))
+    print(&quot;  light in fibre covers about 100 km of distance per ms of round trip, so a&quot;)
+    print(&quot;  round trip puts an upper bound on how far away the other end can be&quot;)
+    for label, host, p in targets:
+        v = [connect_ms(host, p) for _ in range(RUNS)]
+        bound = (&quot;no distance: this is the operating system&#x27;s own time&quot; if host == &quot;127.0.0.1&quot;
+                 else f&quot;within ~{st.median(v) * 100:,.0f} km&quot;)
+        print(f&quot;  {label:38} {summary(v, fmt=&#x27;{:.2f}&#x27;)}   -&gt; {bound}&quot;)
+    local = [plain_request(&quot;127.0.0.1&quot;, port) for _ in range(RUNS)]
+    srv.shutdown()
+    print(f&quot;  a whole plain-HTTP request to the local server: {summary(local, fmt=&#x27;{:.2f}&#x27;)}&quot;)
+
+    # ── 6 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(&quot;6. Connecting to an address that never answers&quot;)
+    print(&quot;=&quot; * 72)
+    print(f&quot;  socket.getdefaulttimeout() = {socket.getdefaulttimeout()}   (None: wait as long as the OS will)&quot;)
+    for timeout in (2, None):
+        dt, outcome = connect_to_nowhere(timeout)
+        print(f&quot;  timeout={str(timeout):5} gave up after {dt:5.1f} s with {outcome}&quot;)
+
+    # ── 7 ──────────────────────────────────────────────────────────────────
+    print(&quot;\n&quot; + &quot;=&quot; * 72)
+    print(&quot;7. Binding: who is allowed to reach a server&quot;)
+    print(&quot;=&quot; * 72)
+    lan = lan_address()
+    kind = &quot;a private address&quot; if lan.startswith((&quot;10.&quot;, &quot;192.168.&quot;, &quot;172.&quot;)) else &quot;a public address&quot;
+    print(f&quot;  this laptop&#x27;s network address is {kind} (not printed)&quot;)
+    for bind_addr in (&quot;127.0.0.1&quot;, &quot;0.0.0.0&quot;):
+        r = bind_test(bind_addr, lan)
+        print(f&quot;  bound to {bind_addr:9}  &quot; + &quot;   &quot;.join(f&quot;{k}: {v}&quot; for k, v in r.items()))</code></pre>
+<p>The output of the run quoted in the video:</p>
+<pre><code><span class="out">8 runs per experiment; times are median (range)
+
+========================================================================
+1. One HTTPS request to example.com, phase by phase
+========================================================================
+  DNS lookup (OS cache)    0.5 ms  (range 0.3-18.9)
+  TCP connect              40.5 ms  (range 33.6-47.1)
+  TLS handshake            56.9 ms  (range 54.6-70.6)
+  request -&gt; first byte    97.1 ms  (range 92.0-100.1)
+  rest of the response     0.0 ms  (range 0.0-0.1)
+  TOTAL                    197.4 ms  (range 184.2-233.3)
+
+  server address  172.66.147.243   protocol TLSv1.3   cipher TLS_AES_256_GCM_SHA384
+  certificate     for &#x27;example.com&#x27;, issued by &#x27;SSL Corporation&#x27;, valid until Dec 25 22:56:35 2026 GMT
+
+========================================================================
+2. DNS by hand: one UDP packet to 1.1.1.1, one back
+========================================================================
+  round trip      4.0 ms  (range 2.0-25.3)
+  question        29 bytes     answer 61 bytes
+  answers         172.66.147.243 (TTL 291 s), 104.20.23.154 (TTL 291 s)
+  the question, as bytes:
+    00 01 01 00 00 01 00 00 00 00 00 00 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 01 00 01
+
+========================================================================
+3. HTTP is text
+========================================================================
+  request: 82 bytes
+    GET / HTTP/1.1
+    Host: example.com
+    User-Agent: net_bench.py
+    Connection: close
+  response: 1,067 bytes (342 of headers, 725 of body)
+    HTTP/1.1 200 OK
+    Content-Type: text/html; charset=utf-8
+    Connection: close
+    Server: cloudflare
+
+========================================================================
+4. Ten requests: ten connections vs one kept-alive connection
+========================================================================
+  ten connections       1304.1 ms  (range 1261.3-1386.5)   -&gt; 130.4 ms per request
+  one connection        432.0 ms  (range 381.8-456.9)   -&gt; 43.2 ms per request
+  reuse is 3.0x faster
+
+========================================================================
+5. Distance: one TCP round trip to three places
+========================================================================
+  light in fibre covers about 100 km of distance per ms of round trip, so a
+  round trip puts an upper bound on how far away the other end can be
+  this laptop (127.0.0.1)                0.28 ms  (range 0.25-0.33)   -&gt; no distance: this is the operating system&#x27;s own time
+  nearest Cloudflare server (1.1.1.1)    1.65 ms  (range 1.41-2.04)   -&gt; within ~165 km
+  example.com, port 443                  23.75 ms  (range 23.10-25.18)   -&gt; within ~2,375 km
+  a whole plain-HTTP request to the local server: 2.10 ms  (range 1.41-2.65)
+
+========================================================================
+6. Connecting to an address that never answers
+========================================================================
+  socket.getdefaulttimeout() = None   (None: wait as long as the OS will)
+  timeout=2     gave up after   2.0 s with TimeoutError
+  timeout=None  gave up after  21.0 s with TimeoutError
+
+========================================================================
+7. Binding: who is allowed to reach a server
+========================================================================
+  this laptop&#x27;s network address is a private address (not printed)
+  bound to 127.0.0.1  via 127.0.0.1: connected   via its network address: failed (TimeoutError)
+  bound to 0.0.0.0    via 127.0.0.1: connected   via its network address: connected</span></code></pre>
+
+<footer>
+  <p><b>Test yourself:</b> <a href="https://kuantor.github.io/drills/python-networking.html">the Networking drill</a>, with the answers behind each card.</p>
+  <p>Ship It Live! is a series on full-stack Python, made by Anton and Claude · <a href="https://www.youtube.com/@MrKuant">YouTube</a> · <a href="index.html">All notes</a> · <a href="https://kuantor.github.io/">kuantor.github.io</a></p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The GIL — the details | Ship It Live!</title>
+  <meta name="description" content="Notes to the video The GIL Explained: Python and CPython, the measurements, multiprocessing, C extensions and free-threaded Python.">
+  <meta property="og:title" content="The GIL — the details">
+  <meta property="og:description" content="Notes to the video The GIL Explained: four threads on eight cores, 1.07x; why waiting is different; and six scripts to try.">
+  <meta property="og:image" content="https://kuantor.github.io/preview.jpg">
+  <meta property="og:url" content="https://kuantor.github.io/notes/gil.html">
+  <meta property="og:type" content="article">
+  <style>
+    :root {
+      --bg: #FBF7EE; --paper: #FFFDF8; --ink: #2A2418; --muted: #6E6350; --rule: #E4DAC5;
+      --gold: #A87A24; --terra: #B4582F; --teal: #3F7F76;
+      --code-bg: #262014; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A150E; --paper: #241D13; --ink: #F1EADA; --muted: #AC9F84; --rule: #4A3D22;
+        --gold: #C8A24B; --terra: #D0845A; --teal: #6FB0A6;
+        --code-bg: #120E09; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 17px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    main { max-width: 46rem; margin: 0 auto; padding: 3rem 1rem 4rem; }
+    header .kicker { color: var(--gold); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+    h1 { font: 700 2.6rem/1.1 Cambria, Georgia, serif; margin: .3rem 0 .6rem; color: var(--gold); }
+    .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2rem; }
+    h2 { font: 700 1.6rem/1.25 Cambria, Georgia, serif; margin: 3rem 0 .4rem; color: var(--ink);
+         padding-top: 1rem; border-top: 1px solid var(--rule); }
+    h2 .n { color: var(--gold); margin-right: .4rem; }
+    h3 { font-size: 1.05rem; margin: 1.6rem 0 .3rem; color: var(--gold); }
+    .video { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    a { color: var(--gold); }
+    code { font: .88em/1.4 Consolas, "Cascadia Mono", monospace; background: var(--paper);
+           border: 1px solid var(--rule); border-radius: 4px; padding: 0 .25em; }
+    pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 1rem 1.1rem;
+          overflow-x: auto; font: .85rem/1.5 Consolas, "Cascadia Mono", monospace; }
+    pre code { background: none; border: none; padding: 0; color: inherit; }
+    pre .c { color: var(--code-dim); } pre .k { color: var(--code-gold); }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .card { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--gold);
+            border-radius: 6px; padding: .8rem 1rem; margin: 1rem 0; }
+    .card.warn { border-left-color: var(--terra); }
+    .card p { margin: .3rem 0; }
+    .big { font: 700 3rem/1 Cambria, Georgia, serif; color: var(--terra); }
+    nav.toc { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: .8rem 1.2rem; }
+    nav.toc ol { margin: .3rem 0; padding-left: 1.4rem; columns: 2; column-gap: 2rem; }
+    nav.toc li { break-inside: avoid; }
+    footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+    .step { display: grid; grid-template-columns: 2.2rem 1fr; gap: .2rem .8rem; margin: 1.6rem 0 .4rem; align-items: baseline; }
+    .step .num { background: var(--gold); color: var(--bg); border-radius: 50%; width: 2rem; height: 2rem;
+                 display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+    .step h3 { margin: 0; color: var(--ink); font-size: 1.1rem; }
+    .os { color: var(--muted); font-size: .85rem; margin: .6rem 0 -.6rem; }
+    pre .out { color: var(--code-dim); }
+    @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 2rem; } td.num { white-space: normal; } }
+  </style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">Ship It Live! · notes to the video</p>
+  <h1>The GIL — the details</h1>
+  <p class="lede">The video <i>The GIL Explained</i> keeps to the big picture in about seven minutes. This page has what did not fit: Python against CPython, the multiprocessing costs, asyncio, the C escape hatch, other engines and free-threaded Python, in the order the video goes. It ends with the benchmark behind every number, and six small scripts to try it by hand.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#question">The open question</a></li>
+    <li><a href="#cpython">Python and CPython</a></li>
+    <li><a href="#what">What the GIL is</a></li>
+    <li><a href="#why">Why it exists</a></li>
+    <li><a href="#cpu">CPU-bound: threads do not help</a></li>
+    <li><a href="#io">I/O-bound: threads help</a></li>
+    <li><a href="#four">All four numbers</a></li>
+    <li><a href="#difference">Why the difference</a></li>
+    <li><a href="#decision">The decision</a></li>
+    <li><a href="#processes">multiprocessing, at a price</a></li>
+    <li><a href="#asyncio">The third option: asyncio</a></li>
+    <li><a href="#c-ext">The escape hatch you already use</a></li>
+    <li><a href="#free">Free-threaded Python</a></li>
+    <li><a href="#met">Where you have already met this</a></li>
+    <li><a href="#interview">The interview answer</a></li>
+    <li><a href="#bench">Run it yourself</a></li>
+    <li><a href="#try-it">Try it by hand</a></li>
+  </ol>
+</nav>
+
+<h2 id="question"><span class="n">1</span>The open question</h2>
+<p class="video">Video: slide 2</p>
+<p>In the Flask talk, the development server ran the app as one process, with a thread for each request. But the WSGI talk deployed a Python web application as several complete, separate processes behind one server. Nobody asked why. Threads are lighter, share memory and start faster, and almost every other language would have used them there. Python does not, and the reason is one design decision inside the interpreter: the <b>Global Interpreter Lock</b>.</p>
+
+<h2 id="cpython"><span class="n">2</span>Python and CPython</h2>
+<p class="video">Video: one sentence on slide 3</p>
+<p><b>Python</b> is a language specification: what <code>for</code>, <code>def</code> and <code>yield</code> mean. It is essentially a document, and it says nothing at all about a GIL. <b>CPython</b> is software, written in C, that reads your source, compiles it to bytecode and runs it; it was written by Guido van Rossum, and it is the reference implementation. The GIL lives in CPython. If you downloaded Python from python.org, you are running CPython, which is why "Python has a GIL" is a useful shorthand and a technically wrong sentence. Saying "CPython's GIL" is a small precision interviewers notice.</p>
+<table>
+  <tr><th>Engine</th><th>GIL?</th><th></th></tr>
+  <tr><td>CPython</td><td>yes</td><td>The reference implementation, in C. What python.org gives you.</td></tr>
+  <tr><td>PyPy</td><td>yes</td><td>A JIT compiler, often several times faster on long-running pure-Python code. Same lock.</td></tr>
+  <tr><td>Jython</td><td>no</td><td>Runs on the JVM and uses Java's threads: real parallelism, but stuck on Python 2.7.</td></tr>
+  <tr><td>IronPython</td><td>no</td><td>Runs on .NET. Genuine threading, and an older language version.</td></tr>
+</table>
+<p>The GIL-free engines are years behind on the language and most of the library ecosystem. That trade is why, for thirty years, almost nobody made it.</p>
+
+<h2 id="what"><span class="n">3</span>What the GIL is</h2>
+<p class="video">Video: slide 3</p>
+<p>A mutex, one per interpreter process, which a thread must hold to execute Python bytecode. So <b>only one thread executes Python bytecode at a time, however many cores the machine has.</b> Three things it is not:</p>
+<ul>
+  <li><b>Not a lock on your data.</b> It does not make your code thread-safe: two threads can still interleave between a read and a write and lose an update. Step 6 below loses most of 8,000 deposits that way. You still need your own locks around shared data.</li>
+  <li><b>Not held continuously.</b> The interpreter drops it every few milliseconds, and on any blocking I/O. Threads really do interleave; they just never run Python at the same instant.</li>
+  <li><b>Per process, not per machine.</b> Two Python programs have two GILs and use two cores happily.</li>
+</ul>
+<div class="card"><p><b>The kitchen.</b> Ten chefs, one knife. All ten can work: fetching, washing, waiting for the oven. Only one can be chopping, and they hand the knife over to swap. More chefs do not chop the onions faster; they get everything else done while one chops. That last sentence is the whole answer to "when does threading still help?"</p></div>
+
+<h2 id="why"><span class="n">4</span>Why it exists</h2>
+<p class="video">Video: slide 4</p>
+<ol>
+  <li><b>Reference counting.</b> CPython frees an object when the count of references to it reaches zero, and that count changes on almost every operation (step 2 below shows it). Two threads updating it at once is a race: crashes, leaks, objects freed while still in use. One global lock removes the whole class of bug.</li>
+  <li><b>Simplicity and single-threaded speed.</b> The alternative, a lock on every object, is far more complex and makes ordinary single-threaded code slower, and most Python code is single-threaded.</li>
+  <li><b>C extensions.</b> Their authors could write C without thinking about concurrent access. NumPy, SciPy and pandas exist partly because that was easy.</li>
+</ol>
+<p>Every serious attempt to remove the GIL before about 2023 succeeded at removing it and failed on the same point: the interpreter got slower at single-threaded code. That is why it survived thirty years.</p>
+
+<h2 id="cpu"><span class="n">5</span>CPU-bound: threads do not help</h2>
+<p class="video">Video: slides 5 and 6</p>
+<p>Four tasks, each summing six million squares in a pure Python loop, run serially, on four threads, and on four processes. Means of eight runs of <code>gil_bench.py</code> (section 16), Python 3.14.3, 8 cores, GIL enabled:</p>
+<table>
+  <tr><th>Serial</th><th>4 threads</th><th>4 processes</th></tr>
+  <tr><td class="num">2.83 s</td><td class="num"><b>2.65 s · 1.07×</b></td><td class="num">1.20 s · 2.36×</td></tr>
+</table>
+<p>Across the eight runs the thread figure moved between 0.98× and 1.15×: it scatters around 1.0, sometimes a shade slower, sometimes a shade faster, never meaningfully faster. The threads spend their time taking the lock, running some bytecode and handing it back. Eight cores, one used. The processes reach 2.36×, not 4×, because starting an interpreter and moving data into it is not free: parallelism has a floor price.</p>
+
+<h2 id="io"><span class="n">6</span>I/O-bound: threads help enormously</h2>
+<p class="video">Video: slide 7</p>
+<table>
+  <tr><th>Serial</th><th>4 threads</th><th>4 processes</th></tr>
+  <tr><td class="num">3.00 s</td><td class="num"><b>0.75 s · 3.99×</b></td><td class="num">1.05 s · 2.85×</td></tr>
+</table>
+<p>Four tasks that each wait three quarters of a second finished in three quarters of a second: a thread that is waiting runs no bytecode, so it hands the lock back. Unlike the CPU figure, this one barely moves: 3.95× to 4.0× across the runs. The hundred and one queries of the ORMs talk's N+1 problem are this kind of work: each one waits on the database, with the lock handed back. And processes do worse than threads here, because they solve a problem you do not have and charge the startup cost anyway. "Use multiprocessing" is advice for one case, not general advice.</p>
+
+<h2 id="four"><span class="n">7</span>All four numbers</h2>
+<p class="video">Not in the video</p>
+<table>
+  <tr><th></th><th>Serial</th><th>4 threads</th><th>4 processes</th></tr>
+  <tr><td><b>CPU-bound</b></td><td class="num">2.83 s</td><td class="num">2.65 s · 1.07×</td><td class="num">1.20 s · 2.36×</td></tr>
+  <tr><td><b>I/O-bound</b></td><td class="num">3.00 s</td><td class="num">0.75 s · 3.99×</td><td class="num">1.05 s · 2.85×</td></tr>
+</table>
+<p>Threads: useless for computing, near-perfect for waiting. Processes: the opposite trade, plus overhead you always pay. Your numbers will differ in size; the shape will not.</p>
+
+<h2 id="difference"><span class="n">8</span>Why the difference</h2>
+<p class="video">Video: slide 8</p>
+<pre><code><span class="c"># CPU-bound - the lock is held the whole time</span>
+<span class="k">for</span> i <span class="k">in</span> range(6_000_000):
+    total += i * i        <span class="c"># bytecode, bytecode, bytecode...</span>
+
+<span class="c"># I/O-bound - the lock is handed back at the call</span>
+data = sock.recv(4096)   <span class="c"># GIL released here</span>
+                         <span class="c"># ... other threads run ...</span>
+                         <span class="c"># GIL re-acquired when data arrives</span></code></pre>
+<p>Waiting is not executing. Before any blocking system call (a socket read, a disk access, a sleep) CPython releases the lock, and takes it back when the call returns; it also drops it every few milliseconds so no thread starves. You never write any of this.</p>
+<div class="card"><p><b>Threads in Python give you concurrency while waiting, not parallelism while computing.</b> So the question is never "threads or processes?" but "is this work waiting, or computing?"</p></div>
+
+<h2 id="decision"><span class="n">9</span>The decision</h2>
+<p class="video">Video: slide 9</p>
+<table>
+  <tr><th></th><th>I/O-bound</th><th>CPU-bound</th></tr>
+  <tr><td>What it is doing</td><td>Waiting on the network, disk or a database</td><td>Running Python arithmetic in a loop</td></tr>
+  <tr><td>Examples</td><td>API calls, scraping, queries, file reads</td><td>Data crunching, parsing, hashing, images</td></tr>
+  <tr><td>Effect of the GIL</td><td>Almost none: released while waiting</td><td>Total: one core, whatever you do</td></tr>
+  <tr><td>Measured, 4 threads</td><td class="num">3.99×</td><td class="num">1.07×</td></tr>
+  <tr><td><b>Use</b></td><td><b>threading, or asyncio</b></td><td><b>multiprocessing, or a C library</b></td></tr>
+</table>
+<p>Most web backends are almost entirely I/O-bound: they spend their lives waiting for the database. That is why Python is a perfectly good language for web work, GIL and all.</p>
+
+<h2 id="processes"><span class="n">10</span>multiprocessing, at a price</h2>
+<p class="video">Not in the video</p>
+<pre><code><span class="k">from</span> concurrent.futures <span class="k">import</span> ProcessPoolExecutor
+
+<span class="k">if</span> __name__ == "__main__":     <span class="c"># required on Windows and macOS</span>
+    <span class="k">with</span> ProcessPoolExecutor(4) <span class="k">as</span> pool:
+        results = list(pool.map(cpu_task, data))</code></pre>
+<ul>
+  <li><b>Startup is not free:</b> a new interpreter per process. Measured above: 2.36× rather than 4×.</li>
+  <li><b>Memory is not shared:</b> arguments and results are pickled and copied, and large data can cost more to move than to process.</li>
+  <li><b>Not everything pickles:</b> lambdas, open sockets, database connections. Pass identifiers, and let each worker open its own.</li>
+</ul>
+<div class="card warn"><p><b>The <code>if __name__ == "__main__"</code> guard is not style.</b> On Windows and macOS, child processes re-import your module to find the function they should run. Without the guard, they re-run your top-level code, which tries to start processes of its own.</p></div>
+<p>And the simplest version of all: two <code>python</code> commands in two terminals are two processes, two GILs, two cores. The GIL only ever restricted threads inside one process.</p>
+
+<h2 id="asyncio"><span class="n">11</span>The third option: asyncio</h2>
+<p class="video">Not in the video; it is <a href="async.html">the next talk</a></p>
+<table>
+  <tr><th>threading</th><th>asyncio</th></tr>
+  <tr><td>OS threads, pre-emptive: the OS can switch at any moment, so shared state needs locks.</td><td>One thread, cooperative: it switches only at an <code>await</code>, which you can see in the source.</td></tr>
+</table>
+<p>Neither escapes the GIL: both are single-core. asyncio is not a way around the lock; it is a way to hold it more efficiently while waiting, and it scales further, because a coroutine costs a few hundred bytes where a thread brings its own stack. A rule of thumb: a few dozen concurrent waits, threads are fine; thousands, asyncio; computing, processes. And because nobody pre-empts a coroutine, one blocking call inside an async handler stalls everything (<a href="async.html#blocking">measured in the Async notes</a>).</p>
+
+<h2 id="c-ext"><span class="n">12</span>The escape hatch you already use</h2>
+<p class="video">Video: an "If asked" on slide 9</p>
+<pre><code><span class="k">import</span> numpy <span class="k">as</span> np
+
+result = big_matrix @ other_matrix
+<span class="c">#  the GIL is released for the duration of this</span></code></pre>
+<p>C extensions may release the GIL, and the word is <i>may</i>: the author must wrap the part that touches no Python objects in <code>Py_BEGIN_ALLOW_THREADS</code> and <code>Py_END_ALLOW_THREADS</code>. An extension that never does holds the lock like Python code. The ones you use every day do: NumPy, pandas, Pillow, cryptography, lxml and the database drivers drop into C, release the lock, do the work and take it back. So a NumPy-heavy workload across threads genuinely runs in parallel, while the same arithmetic as a Python loop does not.</p>
+<div class="card"><p><b>Vectorise before you parallelise.</b> The first fix for a slow numeric loop is usually not multiprocessing, but expressing the loop as an array operation and letting C do it: often a hundred times faster before any parallelism at all.</p></div>
+
+<h2 id="free"><span class="n">13</span>Free-threaded Python</h2>
+<p class="video">Video: one sentence on slide 11</p>
+<ul>
+  <li><b>PEP 703</b> (accepted 2023): make the GIL optional, behind a build flag.</li>
+  <li><b>Python 3.13</b> (2024): the first experimental free-threaded build.</li>
+  <li><b>Python 3.14</b>: officially supported (PEP 779), still not the default build.</li>
+</ul>
+<pre><code>&gt;&gt;&gt; <span class="k">import</span> sys
+&gt;&gt;&gt; sys._is_gil_enabled()      <span class="c"># 3.13+</span>
+True                           <span class="c"># on the machine these benchmarks ran on</span></code></pre>
+<p>What it does not mean yet: it is not the default (you install a separate build deliberately); it is not free (one big lock becomes many small ones, and single-threaded code pays); it is not universally compatible (every C extension needs updating, and the ecosystem is part-way through); and it is not a reason to write threaded CPU-bound code today. In an interview, answer with the GIL as it is, then mention free-threading as what is coming.</p>
+
+<h2 id="met"><span class="n">14</span>Where you have already met this</h2>
+<p class="video">Video: slide 10</p>
+<pre><code>flask --app app run              <span class="c"># one process, a thread per request</span>
+gunicorn myapp:app --workers 4   <span class="c"># four processes, four GILs</span></code></pre>
+<p>Gunicorn's default model is pre-fork: a master process starts N workers, each a complete Python interpreter with its own GIL. That is the only way a Python web application uses more than one core, and the old rule, workers = 2 × cores + 1, is a GIL workaround wearing a formula.</p>
+<ul>
+  <li><b>The Flask development server</b> is the other half: one process, a thread per request, which is fine on a laptop because a request spends its time waiting. Its reloader even runs your file in two processes, so two interpreters and two GILs.</li>
+  <li><b>Four pools, not one.</b> Workers share nothing, so each holds its own connection pool. Size a pool at 10, run 8 workers, and the database sees 80 connections.</li>
+  <li><b>Celery</b> uses worker processes for background jobs, for the same reason.</li>
+  <li><b>Uvicorn</b> combines both: async inside each worker for waiting, several workers for the cores.</li>
+  <li><b>"Just add threads"</b>, sound advice in Java or Go, quietly does nothing here.</li>
+</ul>
+
+<h2 id="interview"><span class="n">15</span>The interview answer</h2>
+<p class="video">Video: slide 11</p>
+<ol>
+  <li><b>What it is:</b> a mutex in CPython; one thread executes Python bytecode at a time, whatever the core count.</li>
+  <li><b>Why:</b> reference counting would race without it, and one coarse lock was simpler and faster than locking every object.</li>
+  <li><b>When threads still help:</b> I/O-bound work, because the lock is released while waiting. Four threads on four waits: 3.99×.</li>
+  <li><b>When you need processes:</b> CPU-bound pure Python, where threads measured 1.07×. Each process has its own interpreter and its own GIL.</li>
+</ol>
+<p>Then one sentence more than they asked for: vectorise before you parallelise, and free-threaded builds exist but are not the default yet.</p>
+
+<h2 id="bench"><span class="n">16</span>Run it yourself</h2>
+<p>Every number in the video comes from <code>gil_bench.py</code>, standard library only: <code>python gil_bench.py</code>. The talk's figures are means of eight runs on Python 3.14.3 with 8 cores.</p>
+<pre><code>&quot;&quot;&quot;Measure the GIL: CPU-bound vs I/O-bound, threads vs processes.&quot;&quot;&quot;
+import os
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+
+N = 4
+WORK = 6_000_000
+
+
+def cpu_task(_):
+    &quot;&quot;&quot;Pure Python arithmetic - holds the GIL the whole time.&quot;&quot;&quot;
+    total = 0
+    for i in range(WORK):
+        total += i * i
+    return total
+
+
+def io_task(_):
+    &quot;&quot;&quot;Sleeping releases the GIL.&quot;&quot;&quot;
+    time.sleep(0.75)
+    return 1
+
+
+def timed(fn):
+    t = time.perf_counter()
+    fn()
+    return time.perf_counter() - t
+
+
+def serial(task):
+    return lambda: [task(i) for i in range(N)]
+
+
+def threaded(task):
+    def run():
+        with ThreadPoolExecutor(max_workers=N) as ex:
+            list(ex.map(task, range(N)))
+    return run
+
+
+def processes(task):
+    def run():
+        with ProcessPoolExecutor(max_workers=N) as ex:
+            list(ex.map(task, range(N)))
+    return run
+
+
+if __name__ == &quot;__main__&quot;:
+    print(f&quot;Python  {sys.version.split()[0]}   cores: {os.cpu_count()}&quot;)
+    gil = getattr(sys, &quot;_is_gil_enabled&quot;, None)
+    print(f&quot;GIL enabled: {gil() if gil else &#x27;n/a (pre-3.13)&#x27;}&quot;)
+    print(f&quot;CPU task: sum of {WORK:,} squares, x{N}    I/O task: sleep 0.75s x{N}\n&quot;)
+
+    print(f&quot;{&#x27;&#x27;:22} {&#x27;serial&#x27;:&gt;9} {&#x27;threads&#x27;:&gt;9} {&#x27;processes&#x27;:&gt;10}   verdict&quot;)
+    print(&quot;-&quot; * 72)
+
+    cs = timed(serial(cpu_task))
+    ct = timed(threaded(cpu_task))
+    cp = timed(processes(cpu_task))
+    print(f&quot;{&#x27;CPU-bound&#x27;:22} {cs:8.2f}s {ct:8.2f}s {cp:9.2f}s&quot;
+          f&quot;   threads x{cs/ct:.2f}, processes x{cs/cp:.2f}&quot;)
+
+    is_ = timed(serial(io_task))
+    it = timed(threaded(io_task))
+    ip = timed(processes(io_task))
+    print(f&quot;{&#x27;I/O-bound&#x27;:22} {is_:8.2f}s {it:8.2f}s {ip:9.2f}s&quot;
+          f&quot;   threads x{is_/it:.2f}, processes x{is_/ip:.2f}&quot;)
+
+    print(&quot;\nspeedup &gt; 1 means faster than doing them one after another&quot;)</code></pre>
+<p>One run on 23 November 2026 printed this. The CPU threads came out at ×0.81, below the eight-run range of 0.98–1.15: that scatter is exactly why the talk quotes means, and why the I/O figure, pinned at about 4, is the one to trust.</p>
+<pre><code><span class="out">Python  3.14.3   cores: 8
+GIL enabled: True
+CPU task: sum of 6,000,000 squares, x4    I/O task: sleep 0.75s x4
+
+                          serial   threads  processes   verdict
+------------------------------------------------------------------------
+CPU-bound                  2.13s     2.61s      1.40s   threads x0.81, processes x1.52
+I/O-bound                  3.00s     0.75s      1.08s   threads x3.99, processes x2.77
+
+speedup &gt; 1 means faster than doing them one after another</span></code></pre>
+
+<h2 id="try-it"><span class="n">17</span>Try it by hand</h2>
+<p>Six small scripts, ten minutes, nothing to install. Each one shows one idea from this page; save it, run it, and compare with the output below. Every script was run on 23 November 2026 with Python 3.14.3 on 8 cores, and the output is copied from that run; your times will differ, the shape will not. Step 1 needs Python 3.13 or newer; the others run on 3.9 and later.</p>
+
+<div class="step"><span class="num">1</span><h3>Is the lock on?</h3></div>
+<p><code>sys._is_gil_enabled()</code>, from Python 3.13, tells you whether this interpreter runs with the GIL. On a normal build it does. Save it as <code>step1_is_it_on.py</code> and run <code>python step1_is_it_on.py</code>.</p>
+<pre><code>import os
+import sys
+
+print(&quot;Python&quot;, sys.version.split()[0], &quot;on&quot;, os.cpu_count(), &quot;cores&quot;)
+print(&quot;GIL enabled:&quot;, sys._is_gil_enabled())      # Python 3.13 and later</code></pre>
+<pre><code><span class="out">Python 3.14.3 on 8 cores
+GIL enabled: True</span></code></pre>
+
+<div class="step"><span class="num">2</span><h3>The counter the lock protects</h3></div>
+<p>Every object carries a count of the references to it. Three more names, and the count goes up by three; the list goes, and the count comes back. This counter is what two threads would race on. Save it as <code>step2_refcount.py</code> and run <code>python step2_refcount.py</code>.</p>
+<pre><code>import sys
+
+word = &quot;flask&quot; * 3                # a fresh string object
+print(sys.getrefcount(word))      # references to it right now
+
+names = [word, word, word]        # three more references
+print(sys.getrefcount(word))
+
+del names                         # the list goes, and its references with it
+print(sys.getrefcount(word))</code></pre>
+<pre><code><span class="out">3
+6
+3</span></code></pre>
+
+<div class="step"><span class="num">3</span><h3>Threads do not speed up Python arithmetic</h3></div>
+<p>Four CPU-bound tasks, one after another, then on four threads. Save it as <code>step3_cpu_threads.py</code> and run <code>python step3_cpu_threads.py</code>.</p>
+<pre><code>import time
+from concurrent.futures import ThreadPoolExecutor
+
+
+def cpu_task(_):
+    total = 0
+    for i in range(6_000_000):
+        total += i * i
+    return total
+
+
+t0 = time.perf_counter()
+for i in range(4):
+    cpu_task(i)
+serial = time.perf_counter() - t0
+
+t0 = time.perf_counter()
+with ThreadPoolExecutor(4) as pool:
+    list(pool.map(cpu_task, range(4)))
+threads = time.perf_counter() - t0
+
+print(f&quot;serial {serial:.2f} s, 4 threads {threads:.2f} s: x{serial / threads:.2f}&quot;)</code></pre>
+<pre><code><span class="out">serial 2.04 s, 4 threads 2.09 s: x0.97</span></code></pre>
+
+<div class="step"><span class="num">4</span><h3>Threads overlap waiting almost perfectly</h3></div>
+<p>Four waits of three quarters of a second, one after another, then on four threads. Save it as <code>step4_io_threads.py</code> and run <code>python step4_io_threads.py</code>.</p>
+<pre><code>import time
+from concurrent.futures import ThreadPoolExecutor
+
+
+def io_task(_):
+    time.sleep(0.75)              # waiting releases the GIL
+
+
+t0 = time.perf_counter()
+for i in range(4):
+    io_task(i)
+serial = time.perf_counter() - t0
+
+t0 = time.perf_counter()
+with ThreadPoolExecutor(4) as pool:
+    list(pool.map(io_task, range(4)))
+threads = time.perf_counter() - t0
+
+print(f&quot;serial {serial:.2f} s, 4 threads {threads:.2f} s: x{serial / threads:.2f}&quot;)</code></pre>
+<pre><code><span class="out">serial 3.00 s, 4 threads 0.75 s: x3.98</span></code></pre>
+
+<div class="step"><span class="num">5</span><h3>Processes compute in parallel, at a price</h3></div>
+<p>The same CPU-bound tasks on four processes. Note the <code>__main__</code> guard. Save it as <code>step5_processes.py</code> and run <code>python step5_processes.py</code>.</p>
+<pre><code>import time
+from concurrent.futures import ProcessPoolExecutor
+
+
+def cpu_task(_):
+    total = 0
+    for i in range(6_000_000):
+        total += i * i
+    return total
+
+
+if __name__ == &quot;__main__&quot;:        # required: each process re-imports this file
+    t0 = time.perf_counter()
+    for i in range(4):
+        cpu_task(i)
+    serial = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    with ProcessPoolExecutor(4) as pool:
+        list(pool.map(cpu_task, range(4)))
+    processes = time.perf_counter() - t0
+
+    print(f&quot;serial {serial:.2f} s, 4 processes {processes:.2f} s: x{serial / processes:.2f}&quot;)</code></pre>
+<pre><code><span class="out">serial 2.13 s, 4 processes 1.20 s: x1.77</span></code></pre>
+
+<div class="step"><span class="num">6</span><h3>The GIL does not protect your data</h3></div>
+<p>Four threads each make 2,000 deposits. Between the read and the write there is a call that releases the GIL, as any I/O would. Without your own lock, most of the deposits are lost. Save it as <code>step6_race.py</code> and run <code>python step6_race.py</code>.</p>
+<pre><code>import threading
+import time
+
+balance = 0
+lock = threading.Lock()
+
+
+def deposit(times):
+    global balance
+    for _ in range(times):
+        current = balance         # read ...
+        time.sleep(0)             # ... any I/O here releases the GIL (a log write, a query) ...
+        balance = current + 1     # ... and write back a value that may be stale
+
+
+def safe_deposit(times):
+    global balance
+    for _ in range(times):
+        with lock:                # your own lock makes the read and the write one step
+            current = balance
+            time.sleep(0)
+            balance = current + 1
+
+
+for work in (deposit, safe_deposit):
+    balance = 0
+    threads = [threading.Thread(target=work, args=(2_000,)) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    print(f&quot;{work.__name__:12} expected 8000, got {balance}&quot;)</code></pre>
+<pre><code><span class="out">deposit      expected 8000, got 2162
+safe_deposit expected 8000, got 8000</span></code></pre>
+
+<div class="card">
+  <p><b>What you just saw, by hand.</b> The lock is on (1). Every object carries a reference count the lock protects (2). Threads do not speed up Python arithmetic (3), and they nearly perfectly overlap waiting (4). Processes do compute in parallel, at a price (5). And the GIL never protected your data: your own lock does (6).</p>
+</div>
+
+
+<footer>
+  <p><b>Test yourself:</b> <a href="https://kuantor.github.io/drills/python-gil.html">the GIL drill</a>, with the answers behind each card.</p>
+  <p>Ship It Live! is a series on full-stack Python, made by Anton and Claude · <a href="https://www.youtube.com/@MrKuant">YouTube</a> · <a href="index.html">All notes</a> · <a href="https://kuantor.github.io/">kuantor.github.io</a></p>
+</footer>
+</main>
+</body>
+</html>

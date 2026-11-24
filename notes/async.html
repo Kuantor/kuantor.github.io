@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Async Python — the details | Ship It Live!</title>
+  <meta name="description" content="Notes to the video Async Python Explained: the syntax, the measurements, async all the way down, and when not to use it.">
+  <meta property="og:title" content="Async Python — the details">
+  <meta property="og:description" content="Notes to the video Async Python Explained: 124 MB of threads against 0.8 MB of coroutines, one blocking call, ASGI, and seven scripts to try.">
+  <meta property="og:image" content="https://kuantor.github.io/preview.jpg">
+  <meta property="og:url" content="https://kuantor.github.io/notes/async.html">
+  <meta property="og:type" content="article">
+  <style>
+    :root {
+      --bg: #FBF7EE; --paper: #FFFDF8; --ink: #2A2418; --muted: #6E6350; --rule: #E4DAC5;
+      --gold: #A87A24; --terra: #B4582F; --teal: #3F7F76;
+      --code-bg: #262014; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1A150E; --paper: #241D13; --ink: #F1EADA; --muted: #AC9F84; --rule: #4A3D22;
+        --gold: #C8A24B; --terra: #D0845A; --teal: #6FB0A6;
+        --code-bg: #120E09; --code-ink: #F1EADA; --code-dim: #AC9F84; --code-gold: #E8CD86;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 17px/1.65 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    main { max-width: 46rem; margin: 0 auto; padding: 3rem 1rem 4rem; }
+    header .kicker { color: var(--gold); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: .8rem; margin: 0; }
+    h1 { font: 700 2.6rem/1.1 Cambria, Georgia, serif; margin: .3rem 0 .6rem; color: var(--gold); }
+    .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2rem; }
+    h2 { font: 700 1.6rem/1.25 Cambria, Georgia, serif; margin: 3rem 0 .4rem; color: var(--ink);
+         padding-top: 1rem; border-top: 1px solid var(--rule); }
+    h2 .n { color: var(--gold); margin-right: .4rem; }
+    h3 { font-size: 1.05rem; margin: 1.6rem 0 .3rem; color: var(--gold); }
+    .video { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    a { color: var(--gold); }
+    code { font: .88em/1.4 Consolas, "Cascadia Mono", monospace; background: var(--paper);
+           border: 1px solid var(--rule); border-radius: 4px; padding: 0 .25em; }
+    pre { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; padding: 1rem 1.1rem;
+          overflow-x: auto; font: .85rem/1.5 Consolas, "Cascadia Mono", monospace; }
+    pre code { background: none; border: none; padding: 0; color: inherit; }
+    pre .c { color: var(--code-dim); } pre .k { color: var(--code-gold); }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .95rem; }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .card { background: var(--paper); border: 1px solid var(--rule); border-left: 4px solid var(--gold);
+            border-radius: 6px; padding: .8rem 1rem; margin: 1rem 0; }
+    .card.warn { border-left-color: var(--terra); }
+    .card p { margin: .3rem 0; }
+    .big { font: 700 3rem/1 Cambria, Georgia, serif; color: var(--terra); }
+    nav.toc { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: .8rem 1.2rem; }
+    nav.toc ol { margin: .3rem 0; padding-left: 1.4rem; columns: 2; column-gap: 2rem; }
+    nav.toc li { break-inside: avoid; }
+    footer { margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+    .step { display: grid; grid-template-columns: 2.2rem 1fr; gap: .2rem .8rem; margin: 1.6rem 0 .4rem; align-items: baseline; }
+    .step .num { background: var(--gold); color: var(--bg); border-radius: 50%; width: 2rem; height: 2rem;
+                 display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+    .step h3 { margin: 0; color: var(--ink); font-size: 1.1rem; }
+    .os { color: var(--muted); font-size: .85rem; margin: .6rem 0 -.6rem; }
+    pre .out { color: var(--code-dim); }
+    @media (max-width: 560px) { nav.toc ol { columns: 1; } h1 { font-size: 2rem; } td.num { white-space: normal; } }
+  </style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">Ship It Live! · notes to the video</p>
+  <h1>Async Python — the details</h1>
+  <p class="lede">The video <i>Async Python Explained</i> keeps to the big picture in about seven minutes. This page has what did not fit: the syntax, the measurements in full, why a coroutine is so cheap, async all the way down, and when not to use it, in the order the video goes. It ends with the benchmark behind every number, and seven small scripts to try it by hand.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <ol>
+    <li><a href="#not">What async is not</a></li>
+    <li><a href="#concurrency">Concurrency and parallelism</a></li>
+    <li><a href="#loop">The event loop</a></li>
+    <li><a href="#coroutines">Coroutines and tasks</a></li>
+    <li><a href="#syntax">The syntax worth knowing</a></li>
+    <li><a href="#waits">Five thousand waits</a></li>
+    <li><a href="#blocking">One blocking call</a></li>
+    <li><a href="#hatches">The escape hatches</a></li>
+    <li><a href="#compute">It still cannot compute</a></li>
+    <li><a href="#choosing">Choosing between the three</a></li>
+    <li><a href="#all-the-way">Async all the way down</a></li>
+    <li><a href="#asgi">ASGI</a></li>
+    <li><a href="#when-not">When not to use it</a></li>
+    <li><a href="#interview">The interview answer</a></li>
+    <li><a href="#bench">Run it yourself</a></li>
+    <li><a href="#try-it">Try it by hand</a></li>
+  </ol>
+</nav>
+
+<h2 id="not"><span class="n">1</span>What async is not</h2>
+<p class="video">Video: slide 3</p>
+<p>"Async makes your code faster" is the sentence to drop first. It does not. It makes <b>waiting</b> cheap.</p>
+<ul>
+  <li><b>Nothing runs in parallel.</b> asyncio is one thread on one core, and the GIL still holds.</li>
+  <li><b>No computation gets faster.</b> Four CPU-bound tasks under <code>asyncio.gather</code> came out at 0.97× of serial (section 9).</li>
+  <li><b>What changes is the cost of waiting.</b> Ten thousand simultaneous waits become cheap. That is the entire feature: a narrower claim than "faster", but where it applies, it applies enormously.</li>
+</ul>
+<p>If someone rewrote a CPU-heavy script in asyncio and it got faster, something else changed at the same time. Ask what.</p>
+
+<h2 id="concurrency"><span class="n">2</span>Concurrency and parallelism</h2>
+<p class="video">Video: slide 4</p>
+<table>
+  <tr><th>Concurrency</th><th>Parallelism</th></tr>
+  <tr><td><i>Dealing</i> with many things at once</td><td><i>Doing</i> many things at once</td></tr>
+  <tr><td>A structure: many tasks in flight, progress interleaved. One cook managing four pans.</td><td>An execution fact: two things in the same instant, on two cores. Four cooks at four stations.</td></tr>
+  <tr><td>Threads and asyncio both give you this.</td><td>In CPython, only processes give you this.</td></tr>
+</table>
+<p>The distinction is Rob Pike's, from a 2012 talk about Go: concurrency is about structure, parallelism is about execution. asyncio is a concurrency tool, exclusively. It never adds a core, so every question about it comes down to one: is this program <b>waiting</b>, or <b>working</b>?</p>
+
+<h2 id="loop"><span class="n">3</span>The event loop</h2>
+<p class="video">Video: slide 5</p>
+<ol>
+  <li><b>Take the next ready task</b> and run it: ordinary, synchronous Python.</li>
+  <li><b>Run it until it hits an <code>await</code></b>: the task saying "I am waiting on something; here is control back".</li>
+  <li><b>Park it, and register the wait.</b> The loop hands the socket or timer to the operating system and forgets the task.</li>
+  <li><b>Go back to step 1.</b> When the OS reports the wait is over, the task is ready again.</li>
+</ol>
+<p>One thread, one task at a time, from one <code>await</code> to the next. Nothing interrupts a task in the middle; the OS is not scheduling any of this, the tasks cooperate. That is why you need no locks between two awaits, and why one task that refuses to yield stops everybody (section 7).</p>
+
+<h2 id="coroutines"><span class="n">4</span>Coroutines and tasks</h2>
+<p class="video">Video: slide 6</p>
+<pre><code><span class="k">async def</span> fetch():
+    <span class="k">await</span> asyncio.sleep(1)
+    <span class="k">return</span> 42
+
+c = fetch()      <span class="c"># nothing has happened</span>
+print(c)         <span class="c"># &lt;coroutine object fetch&gt;</span>
+
+result = <span class="k">await</span> fetch()      <span class="c"># now it runs</span></code></pre>
+<ul>
+  <li><b>A coroutine is a paused function:</b> its local variables and its position in the code, waiting to be resumed.</li>
+  <li><b>Calling it does nothing.</b> Forget the <code>await</code> and Python warns: <code>RuntimeWarning: coroutine 'fetch' was never awaited</code>.</li>
+  <li><b>A task is a scheduled coroutine.</b> <code>asyncio.create_task()</code> hands it to the loop, and that is what makes things run concurrently.</li>
+</ul>
+<div class="card warn"><p><b>The sequential-await trap.</b> <code>await a(); await b(); await c()</code> is not concurrent: three one-second waits take three seconds (try it in step 2 below). Concurrency starts when several are in flight together: <code>asyncio.gather(a(), b(), c())</code> takes one second, and so does a TaskGroup.</p></div>
+
+<h2 id="syntax"><span class="n">5</span>The syntax worth knowing</h2>
+<p class="video">Not in the video</p>
+<pre><code><span class="c"># fan out, wait for all</span>
+results = <span class="k">await</span> asyncio.gather(a(), b(), c())
+
+<span class="c"># structured concurrency - 3.11+, and the better default</span>
+<span class="k">async with</span> asyncio.TaskGroup() <span class="k">as</span> tg:
+    tg.create_task(a())
+    tg.create_task(b())
+
+<span class="c"># a deadline</span>
+<span class="k">async with</span> asyncio.timeout(5):
+    <span class="k">await</span> slow_thing()
+
+<span class="c"># at most ten at a time</span>
+limit = asyncio.Semaphore(10)
+<span class="k">async with</span> limit:
+    <span class="k">await</span> fetch(url)</code></pre>
+<ul>
+  <li><b>Prefer TaskGroup to gather.</b> If one task fails, the group cancels the rest and raises an <code>ExceptionGroup</code>. Plain <code>gather</code> can leave the siblings running, unwatched.</li>
+  <li><b>Always bound your concurrency.</b> <code>gather</code> over 10,000 URLs opens 10,000 sockets; a <code>Semaphore</code> is the difference between fast and banned.</li>
+  <li><b>Cancellation is an exception,</b> <code>CancelledError</code>, raised inside the task. Let it propagate: a bare <code>except</code> that swallows it turns a clean shutdown into a hang.</li>
+</ul>
+<p><code>TaskGroup</code> and <code>asyncio.timeout</code> arrived in Python 3.11 and made most older patterns obsolete. A tutorial built on <code>ensure_future</code> predates them.</p>
+
+<h2 id="waits"><span class="n">6</span>Five thousand waits, and why a coroutine is cheap</h2>
+<p class="video">Video: slide 7</p>
+<p>The same two-second wait, N of them at once, threads against coroutines. Means of eight runs of <code>async_bench.py</code> (section 15), Python 3.14.3, 8 cores:</p>
+<table>
+  <tr><th>N at once</th><th>Threads: time · memory</th><th>Coroutines: time · memory</th></tr>
+  <tr><td>100</td><td class="num">2.02 s · 2.5 MB</td><td class="num">2.01 s · 0.1 MB</td></tr>
+  <tr><td>1,000</td><td class="num">2.13 s · 24.8 MB</td><td class="num">2.03 s · 0.2 MB</td></tr>
+  <tr><td>5,000</td><td class="num"><b>2.68 s · 124.2 MB</b></td><td class="num"><b>2.10 s · 0.8 MB</b></td></tr>
+</table>
+<p>About <span class="big">150×</span> less memory. Both wait perfectly well; the threads even got slower, because five thousand OS threads cost real scheduling effort. The argument for async is a <b>memory</b> argument, about the ceiling, not a speed one.</p>
+<table>
+  <tr><th>A thread</th><th>A coroutine</th></tr>
+  <tr><td>Its own call stack, reserved up front</td><td>A Python object holding locals and a position</td></tr>
+  <tr><td>Kernel bookkeeping: the OS schedules it</td><td>The kernel does not know it exists</td></tr>
+  <tr><td>A switch is a trip into the kernel</td><td>A switch is a function return, no system call</td></tr>
+  <tr><td>About <b>25 KB</b> each here (124.2 MB / 5,000)</td><td>About <b>170 bytes</b> each here (0.8 MB / 5,000)</td></tr>
+</table>
+<p>A few thousand threads is a lot for one machine; a few hundred thousand coroutines is unremarkable. For a service that holds many idle connections (websockets, long polling, server-sent events, streaming) that ceiling is the whole design constraint, and it is why FastAPI can do things Flask cannot.</p>
+
+<h2 id="blocking"><span class="n">7</span>One blocking call</h2>
+<p class="video">Video: slide 8</p>
+<p>One event loop, a few trivial tasks that each wait 10 ms, and one slow task that takes a second. How long did the 10 ms tasks take? Means of eight runs:</p>
+<table>
+  <tr><th>The slow task uses</th><th>The 10 ms task took</th><th>Why</th></tr>
+  <tr><td><code>time.sleep(1)</code></td><td class="num"><b>1,018.6 ms</b></td><td>It blocks: the loop cannot run anything else</td></tr>
+  <tr><td><code>await asyncio.sleep(1)</code></td><td class="num">14.5 ms</td><td>It yields: everyone else proceeds</td></tr>
+  <tr><td><code>await asyncio.to_thread(time.sleep, 1)</code></td><td class="num">30.4 ms</td><td>It runs on a thread: the loop stays free</td></tr>
+</table>
+<p>A hundred times its own duration, because something else refused to yield and nothing can force it. In a web service that is every other request on the worker. A synchronous framework would have blocked one worker out of several, and the OS would pre-empt it anyway; on an event loop, scheduling is cooperative, and a task that does not cooperate takes everyone down with it.</p>
+
+<h2 id="hatches"><span class="n">8</span>The escape hatches, and debug mode</h2>
+<p class="video">Video: slide 9</p>
+<pre><code><span class="c"># a blocking library, in an async handler</span>
+rows = <span class="k">await</span> asyncio.to_thread(legacy_query, sql)
+
+<span class="c"># CPU-bound work - a process, not a thread</span>
+loop = asyncio.get_running_loop()
+<span class="k">with</span> ProcessPoolExecutor() <span class="k">as</span> pool:
+    out = <span class="k">await</span> loop.run_in_executor(pool, crunch, data)</code></pre>
+<ul>
+  <li><b><code>to_thread</code> for blocking I/O:</b> a legacy driver, a file read, an SDK with no async version. The loop stays free.</li>
+  <li><b>A process pool for CPU work:</b> a thread would not help, because the GIL has not gone anywhere.</li>
+  <li><b>Or a synchronous framework:</b> if most of your work blocks, async is a costume. Flask with more Gunicorn workers is simpler and more honest.</li>
+</ul>
+<div class="card"><p><b>Debug mode finds the blocking calls you did not know about.</b> Set <code>PYTHONASYNCIODEBUG=1</code>, or call <code>asyncio.run(main(), debug=True)</code>, and the loop logs every callback that took longer than 100 ms: <code>Executing &lt;Task … coro=&lt;handler() …&gt; took 0.302 seconds</code> (step 4 below). It is the async counterpart of <code>echo=True</code> in an ORM.</p></div>
+
+<h2 id="compute"><span class="n">9</span>It still cannot compute</h2>
+<p class="video">Not in the video (its numbers are on slide 10)</p>
+<p>Four CPU-bound tasks (5,000,000 squares each), gathered on the event loop: <b>3.41 s</b> serial against <b>3.56 s</b> with <code>asyncio.gather</code>. The ratio is 0.97×, and across the eight runs it moved between 0.78× and 1.12×: it scatters around one. Tasks switch only at <code>await</code>, and a tight arithmetic loop has none.</p>
+<table>
+  <tr><th>Tool</th><th>Waiting</th><th>Computing</th></tr>
+  <tr><td>threads</td><td class="num">3.99×</td><td class="num">1.07×</td></tr>
+  <tr><td>asyncio</td><td>scales to thousands</td><td class="num">0.97×</td></tr>
+  <tr><td>processes</td><td class="num">2.85×</td><td class="num">2.36×</td></tr>
+</table>
+<p>Measured on the same laptop, four workers on four tasks; the threads and processes rows come from the GIL talk (<a href="gil.html">its notes</a>). Three tools, one question: is the program waiting, or working?</p>
+
+<h2 id="choosing"><span class="n">10</span>Choosing between the three</h2>
+<p class="video">Video: slide 10</p>
+<table>
+  <tr><th>Use</th><th>When</th><th>For example</th></tr>
+  <tr><td><b>asyncio</b></td><td>Many waits: hundreds or thousands at once</td><td>Web servers holding connections, scrapers, chatty API clients, websockets</td></tr>
+  <tr><td><b>threading</b></td><td>A few waits, or a blocking library you cannot replace</td><td>A handful of parallel downloads, an SDK with no async support</td></tr>
+  <tr><td><b>multiprocessing</b></td><td>Real computation in Python</td><td>Data crunching, parsing, hashing, image work</td></tr>
+</table>
+<p>Async and threads solve the same problem; they differ in ceiling, not in kind. And the fourth option is usually right: do nothing. Most services are waiting on one database that answers in five milliseconds, and no concurrency machinery improves that.</p>
+
+<h2 id="all-the-way"><span class="n">11</span>Async all the way down</h2>
+<p class="video">Not in the video</p>
+<p>Every library on the hot path needs an async version, because one synchronous library in the chain and the whole benefit disappears:</p>
+<table>
+  <tr><th>Instead of</th><th>Use</th></tr>
+  <tr><td>psycopg2</td><td><code>asyncpg</code>, PostgreSQL's async-native driver</td></tr>
+  <tr><td>SQLAlchemy's <code>Session</code></td><td><code>AsyncSession</code>, SQLAlchemy 2.0's async ORM session</td></tr>
+  <tr><td>requests</td><td><code>httpx</code>, with an async client</td></tr>
+  <tr><td>redis-py's client</td><td><code>redis.asyncio</code>, which ships inside redis-py</td></tr>
+  <tr><td><code>open()</code></td><td><code>aiofiles</code>: file I/O is otherwise always blocking</td></tr>
+</table>
+<pre><code>engine = create_async_engine(DATABASE_URL)
+<span class="k">async with</span> AsyncSession(engine) <span class="k">as</span> session:
+    result = <span class="k">await</span> session.scalars(select(Word))</code></pre>
+<p>An async framework calling psycopg2 is a synchronous application wearing async syntax, and it is <b>worse</b> than the synchronous version: every query blocks the loop, with no OS pre-emption to soften it. That is the most common way async projects end up slower than what they replaced, so check the hot path first. And the failure modes multiply: an ORM's N+1 problem, a hundred and one queries, on a blocked loop stalls every other request on the worker too.</p>
+
+<h2 id="asgi"><span class="n">12</span>ASGI</h2>
+<p class="video">Video: slide 11</p>
+<pre><code><span class="c"># WSGI: one call, one response</span>
+<span class="k">def</span> app(environ, start_response):
+    ...
+    <span class="k">return</span> [b"body"]
+
+<span class="c"># ASGI: a coroutine, and two channels</span>
+<span class="k">async def</span> app(scope, receive, send):
+    ...
+    <span class="k">await</span> send({...})</code></pre>
+<p>WSGI takes a dict and returns bytes: there is nowhere in that shape for a connection that stays open, which is why WSGI cannot do websockets. ASGI can receive many messages and send many, so websockets and streaming fit. A plain HTTP response is two messages, <code>http.response.start</code> (status and headers) and <code>http.response.body</code>; step 7 below calls an ASGI app by hand and prints them. ASGI was inspired by WSGI rather than derived from it: a separate design for connections that persist, not a version two.</p>
+<p><b>Uvicorn is to ASGI what Gunicorn is to WSGI</b>, and you still run several Uvicorn workers: async gives concurrency inside one core, worker processes give parallelism across cores. Two problems, two tools, and a real deployment needs both.</p>
+
+<h2 id="when-not"><span class="n">13</span>When not to use it</h2>
+<p class="video">Not in the video</p>
+<ul>
+  <li><b>Your work is CPU-bound.</b> Threads gave 1.07×, asyncio 0.97×: neither helps. Use processes.</li>
+  <li><b>Your libraries are synchronous.</b> One blocking driver undoes the whole thing, and makes it worse than sync would have been (section 11).</li>
+  <li><b>Your concurrency is in the dozens.</b> Threads are simpler, and the ceiling matters only in the thousands.</li>
+  <li><b>The team has not written it before.</b> Async is <b>contagious</b>: one <code>await</code> makes its caller async, and that caller's caller, all the way up to the entry point. There is no small async pilot inside a synchronous codebase; it is a codebase-wide decision.</li>
+</ul>
+<p>Flask with more Gunicorn workers handles a great deal of traffic and is understood by everyone you will ever hire. Reach for async for a specific reason, many concurrent connections, not because it is the newer keyword.</p>
+
+<h2 id="interview"><span class="n">14</span>The interview answer</h2>
+<p class="video">Video: slide 12</p>
+<p><i>An async handler calls a synchronous database driver. What happens, and why is it worse than the same call in a synchronous framework?</i></p>
+<ol>
+  <li><b>What happens:</b> the blocking call holds the single event-loop thread, so every coroutine on that worker stops, not just the current request.</li>
+  <li><b>Why it is worse than sync:</b> a synchronous framework blocks one worker of several, and the OS pre-empts it anyway; on a loop, nothing pre-empts you.</li>
+  <li><b>The number:</b> a 10 ms task behind one blocking second took 1,019 ms on average, a hundred times its own duration.</li>
+  <li><b>The fix:</b> an async driver, or <code>asyncio.to_thread</code>, found with debug mode.</li>
+</ol>
+<div class="card"><p><b>Async does not make code faster. It makes waiting cheap — and it charges you the whole codebase for it.</b></p></div>
+
+<h2 id="bench"><span class="n">15</span>Run it yourself</h2>
+<p>Every number in the video and on this page comes from <code>async_bench.py</code>: <code>pip install psutil</code> (it measures the process's memory), then <code>python async_bench.py</code>. The figures are means of eight runs, each in a fresh process, Python 3.14.3 on 8 cores, 1 October 2026; your machine will give different numbers, and the same shape.</p>
+<pre><code>&quot;&quot;&quot;Measure what async actually buys you, and what it costs.
+
+Three experiments:
+  1. Concurrency at scale — N simultaneous waits, threads vs coroutines.
+  2. Blocking the event loop — what one sync call does to everything else.
+  3. CPU-bound under asyncio — proof that async is not a speed-up.
+
+    python async_bench.py
+&quot;&quot;&quot;
+
+import asyncio
+import gc
+import os
+import sys
+import threading
+import time
+
+import psutil
+
+PROC = psutil.Process(os.getpid())
+WAIT = 2.0
+
+
+def rss_mb() -&gt; float:
+    gc.collect()
+    return PROC.memory_info().rss / 1024 / 1024
+
+
+# ------------------------------------------------ 1. concurrency at scale --
+def threads_wait(n: int):
+    ts = [threading.Thread(target=time.sleep, args=(WAIT,)) for _ in range(n)]
+    base = rss_mb()
+    t0 = time.perf_counter()
+    for t in ts:
+        t.start()
+    peak = rss_mb()
+    for t in ts:
+        t.join()
+    return time.perf_counter() - t0, peak - base
+
+
+async def _coros_wait(n: int):
+    base = rss_mb()
+    t0 = time.perf_counter()
+    tasks = [asyncio.create_task(asyncio.sleep(WAIT)) for _ in range(n)]
+    await asyncio.sleep(0)          # let them all start
+    peak = rss_mb()
+    await asyncio.gather(*tasks)
+    return time.perf_counter() - t0, peak - base
+
+
+def coros_wait(n: int):
+    return asyncio.run(_coros_wait(n))
+
+
+# ------------------------------------------------ 2. blocking the loop -----
+async def _loop_blocking(mode: str):
+    &quot;&quot;&quot;One slow task, then measure how long a trivial task waits behind it.&quot;&quot;&quot;
+    latencies = []
+
+    async def slow():
+        if mode == &quot;sync&quot;:
+            time.sleep(1.0)                      # blocks the whole loop
+        elif mode == &quot;async&quot;:
+            await asyncio.sleep(1.0)             # yields
+        else:
+            await asyncio.to_thread(time.sleep, 1.0)   # offloaded
+
+    # The clock has to start BEFORE anything is scheduled. Timing from inside
+    # quick() would start counting only once it first runs -- which is after
+    # the blocking call has already finished, so the delay would be invisible.
+    async def quick(started: float):
+        await asyncio.sleep(0.01)                # should take ~10ms
+        latencies.append((time.perf_counter() - started) * 1000)
+
+    started = time.perf_counter()
+    await asyncio.gather(slow(), *[quick(started) for _ in range(5)])
+    return max(latencies)
+
+
+def loop_blocking(mode: str):
+    return asyncio.run(_loop_blocking(mode))
+
+
+# ------------------------------------------------ 3. CPU-bound under async -
+def cpu(n=5_000_000):
+    total = 0
+    for i in range(n):
+        total += i * i
+    return total
+
+
+async def _cpu_async():
+    async def one():
+        return cpu()
+    t0 = time.perf_counter()
+    await asyncio.gather(*[one() for _ in range(4)])
+    return time.perf_counter() - t0
+
+
+def cpu_serial():
+    t0 = time.perf_counter()
+    for _ in range(4):
+        cpu()
+    return time.perf_counter() - t0
+
+
+if __name__ == &quot;__main__&quot;:
+    print(f&quot;Python {sys.version.split()[0]}   cores: {os.cpu_count()}\n&quot;)
+
+    print(&quot;=&quot; * 70)
+    print(f&quot;1. {int(WAIT)}-second wait, N at once&quot;)
+    print(&quot;=&quot; * 70)
+    print(f&quot;{&#x27;N&#x27;:&gt;6}  {&#x27;threads: time / memory&#x27;:&gt;28}  {&#x27;coroutines: time / memory&#x27;:&gt;28}&quot;)
+    for n in (100, 1000, 5000):
+        try:
+            tt, tm = threads_wait(n)
+            tcol = f&quot;{tt:6.2f}s / {tm:7.1f} MB&quot;
+        except (RuntimeError, MemoryError) as exc:
+            tcol = f&quot;FAILED: {type(exc).__name__}&quot;
+        ct, cm = coros_wait(n)
+        print(f&quot;{n:&gt;6}  {tcol:&gt;28}  {ct:6.2f}s / {cm:7.1f} MB&quot;)
+
+    print(&quot;\n&quot; + &quot;=&quot; * 70)
+    print(&quot;2. One slow call, and how long a 10ms task waits behind it&quot;)
+    print(&quot;=&quot; * 70)
+    for mode, label in [(&quot;sync&quot;, &quot;time.sleep(1)        blocking&quot;),
+                        (&quot;async&quot;, &quot;await asyncio.sleep(1)&quot;),
+                        (&quot;thread&quot;, &quot;await to_thread(sleep, 1)&quot;)]:
+        print(f&quot;  {label:32} worst 10ms task took {loop_blocking(mode):8.1f} ms&quot;)
+
+    print(&quot;\n&quot; + &quot;=&quot; * 70)
+    print(&quot;3. CPU-bound work under asyncio (4 x 5,000,000 squares)&quot;)
+    print(&quot;=&quot; * 70)
+    s = cpu_serial()
+    a = asyncio.run(_cpu_async())
+    print(f&quot;  serial          {s:6.2f}s&quot;)
+    print(f&quot;  asyncio.gather  {a:6.2f}s   -&gt;  {s/a:.2f}x&quot;)</code></pre>
+
+<h2 id="try-it"><span class="n">16</span>Try it by hand</h2>
+<p>Seven small scripts, ten minutes. Each one shows one idea from this page; save it, run it, and compare with the output below. Every script was run on 23 November 2026 with Python 3.14.3, and the output is copied from that run (your times will differ a little). You need Python 3.11 or newer, and nothing to install.</p>
+
+<div class="step"><span class="num">1</span><h3>A coroutine is an object that has not started</h3></div>
+<p>Calling an async function gives you a coroutine object; only <code>await</code> runs it. The last line calls <code>fetch()</code> and drops the result: Python warns that it was never awaited. Save it as <code>step1_coroutine.py</code> and run <code>python step1_coroutine.py</code>.</p>
+<pre><code>import asyncio
+
+
+async def fetch():
+    await asyncio.sleep(1)
+    return 42
+
+
+async def main():
+    c = fetch()
+    print(c)                 # a coroutine object: nothing has run yet
+    print(await c)           # now it runs, and returns 42
+    fetch()                  # called, never awaited
+
+
+asyncio.run(main())</code></pre>
+<pre><code><span class="out">&lt;coroutine object fetch at 0x0000027157712F80&gt;
+42
+step1_coroutine.py:13: RuntimeWarning: coroutine &#x27;fetch&#x27; was never awaited
+  fetch()                  # called, never awaited</span></code></pre>
+
+<div class="step"><span class="num">2</span><h3>Three awaits in a row, then gather</h3></div>
+<p>The same three one-second waits, first awaited one after another, then gathered. Then five thousand at once. Save it as <code>step2_gather.py</code> and run <code>python step2_gather.py</code>.</p>
+<pre><code>import asyncio
+import time
+
+
+async def wait(n):
+    await asyncio.sleep(1)
+    return n
+
+
+async def main():
+    t0 = time.perf_counter()
+    print(await wait(1), await wait(2), await wait(3))
+    print(f&quot;three awaits in a row: {time.perf_counter() - t0:.2f} s&quot;)
+
+    t0 = time.perf_counter()
+    print(await asyncio.gather(wait(1), wait(2), wait(3)))
+    print(f&quot;gather of three: {time.perf_counter() - t0:.2f} s&quot;)
+
+    t0 = time.perf_counter()
+    results = await asyncio.gather(*[wait(i) for i in range(5000)])
+    print(f&quot;gather of {len(results)}: {time.perf_counter() - t0:.2f} s&quot;)
+
+
+asyncio.run(main())</code></pre>
+<pre><code><span class="out">1 2 3
+three awaits in a row: 3.00 s
+[1, 2, 3]
+gather of three: 1.00 s
+gather of 5000: 1.06 s</span></code></pre>
+
+<div class="step"><span class="num">3</span><h3>One blocking call stops everybody</h3></div>
+<p>Five 10 ms tasks share a loop with one slow call. The slow call is first <code>time.sleep</code>, then <code>asyncio.sleep</code>, then <code>time.sleep</code> on a thread. Save it as <code>step3_freeze.py</code> and run <code>python step3_freeze.py</code>.</p>
+<pre><code>import asyncio
+import time
+
+
+async def quick(started):
+    await asyncio.sleep(0.01)                         # a 10 ms task
+    return (time.perf_counter() - started) * 1000
+
+
+async def run(slow):
+    started = time.perf_counter()
+    results = await asyncio.gather(slow(), *[quick(started) for _ in range(5)])
+    return max(results[1:])
+
+
+async def blocking():
+    time.sleep(1)                                     # blocks the whole loop
+
+
+async def polite():
+    await asyncio.sleep(1)                            # yields
+
+
+async def offloaded():
+    await asyncio.to_thread(time.sleep, 1)            # runs on a thread
+
+
+for slow in (blocking, polite, offloaded):
+    print(f&quot;{slow.__name__:10} the 10 ms task took {asyncio.run(run(slow)):7.1f} ms&quot;)</code></pre>
+<pre><code><span class="out">blocking   the 10 ms task took  1010.9 ms
+polite     the 10 ms task took    10.9 ms
+offloaded  the 10 ms task took    32.1 ms</span></code></pre>
+
+<div class="step"><span class="num">4</span><h3>Debug mode names the culprit</h3></div>
+<p>A blocking call hiding in async code, run with <code>debug=True</code>. The loop logs every step that held it for longer than 100 ms. Save it as <code>step4_debug.py</code> and run <code>python step4_debug.py</code>.</p>
+<pre><code>import asyncio
+import time
+
+
+async def handler():
+    time.sleep(0.3)               # a blocking call hiding in async code
+    await asyncio.sleep(0)
+
+
+asyncio.run(handler(), debug=True)</code></pre>
+<pre><code><span class="out">Executing &lt;Task pending name=&#x27;Task-1&#x27; coro=&lt;handler() running at step4_debug.py:7&gt; … took 0.302 seconds</span></code></pre>
+
+<div class="step"><span class="num">5</span><h3>A TaskGroup cleans up after a failure</h3></div>
+<p>Two slow tasks and one that fails. The group cancels the other two and raises an <code>ExceptionGroup</code>, which <code>except*</code> unpacks. Save it as <code>step5_taskgroup.py</code> and run <code>python step5_taskgroup.py</code>.</p>
+<pre><code>import asyncio
+
+
+async def slow(name):
+    try:
+        await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        print(name, &quot;was cancelled&quot;)
+        raise                      # let cancellation through
+
+
+async def boom():
+    await asyncio.sleep(0.1)
+    raise ValueError(&quot;boom&quot;)
+
+
+async def main():
+    try:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(slow(&quot;a&quot;))
+            tg.create_task(slow(&quot;b&quot;))
+            tg.create_task(boom())
+    except* ValueError as group:
+        print(&quot;the group raised:&quot;, group.exceptions)
+
+
+asyncio.run(main())</code></pre>
+<pre><code><span class="out">b was cancelled
+a was cancelled
+the group raised: (ValueError(&#x27;boom&#x27;),)</span></code></pre>
+
+<div class="step"><span class="num">6</span><h3>A semaphore bounds concurrency</h3></div>
+<p>Nine one-second tasks, at most three at a time. Save it as <code>step6_semaphore.py</code> and run <code>python step6_semaphore.py</code>.</p>
+<pre><code>import asyncio
+import time
+
+limit = asyncio.Semaphore(3)       # at most three at a time
+
+
+async def polite(n):
+    async with limit:
+        await asyncio.sleep(1)
+        return n
+
+
+async def main():
+    t0 = time.perf_counter()
+    await asyncio.gather(*[polite(i) for i in range(9)])
+    print(f&quot;9 one-second tasks, 3 at a time: {time.perf_counter() - t0:.2f} s&quot;)
+
+
+asyncio.run(main())</code></pre>
+<pre><code><span class="out">9 one-second tasks, 3 at a time: 3.00 s</span></code></pre>
+
+<div class="step"><span class="num">7</span><h3>ASGI by hand</h3></div>
+<p>An ASGI application is a coroutine with two channels. Calling it directly, with a hand-made <code>receive</code> and <code>send</code>, shows the two messages a plain HTTP response is made of. Save it as <code>step7_asgi.py</code> and run <code>python step7_asgi.py</code>.</p>
+<pre><code>import asyncio
+
+
+async def app(scope, receive, send):                  # an ASGI application
+    await send({&quot;type&quot;: &quot;http.response.start&quot;, &quot;status&quot;: 200,
+                &quot;headers&quot;: [(b&quot;content-type&quot;, b&quot;text/plain&quot;)]})
+    await send({&quot;type&quot;: &quot;http.response.body&quot;, &quot;body&quot;: b&quot;Hello from ASGI&quot;})
+
+
+async def receive():
+    return {&quot;type&quot;: &quot;http.request&quot;, &quot;body&quot;: b&quot;&quot;}
+
+
+async def send(message):
+    print(message)
+
+
+scope = {&quot;type&quot;: &quot;http&quot;, &quot;method&quot;: &quot;GET&quot;, &quot;path&quot;: &quot;/&quot;}
+asyncio.run(app(scope, receive, send))</code></pre>
+<pre><code><span class="out">{&#x27;type&#x27;: &#x27;http.response.start&#x27;, &#x27;status&#x27;: 200, &#x27;headers&#x27;: [(b&#x27;content-type&#x27;, b&#x27;text/plain&#x27;)]}
+{&#x27;type&#x27;: &#x27;http.response.body&#x27;, &#x27;body&#x27;: b&#x27;Hello from ASGI&#x27;}</span></code></pre>
+
+<div class="card">
+  <p><b>What you just saw, by hand.</b> A coroutine is an object that has not started (1). Concurrency needs several in flight at once (2). One blocking call stops everybody, and <code>to_thread</code> sets them free (3). Debug mode names the culprit (4). A TaskGroup cleans up after a failure (5). A semaphore keeps you polite (6). And ASGI is just a coroutine that sends messages (7).</p>
+</div>
+
+
+<footer>
+  <p><b>Test yourself:</b> <a href="https://kuantor.github.io/drills/python-async-python.html">the Async drill</a>, with the answers behind each card.</p>
+  <p>Ship It Live! is a series on full-stack Python, made by Anton and Claude · <a href="https://www.youtube.com/@MrKuant">YouTube</a> · <a href="index.html">All notes</a> · <a href="https://kuantor.github.io/">kuantor.github.io</a></p>
+</footer>
+</main>
+</body>
+</html>

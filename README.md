@@ -8,7 +8,7 @@ Personal website of Anton Kuznietsov — full-stack Python developer with C++ ga
 - 🎹 [Synthesizer](https://kuantor.github.io/Synthesizer/) — subtractive synth in the Web Audio API, playable from your keyboard
 - 🃏 [KuantorFlow](https://kuantorflow.pythonanywhere.com/) — full-stack language-learning platform with an AI study companion
 - 📝 [Drills](https://kuantor.github.io/drills/) — interactive knowledge-check drills (English grammar B2–C1 and more to come)
-- 📚 [Notes](https://kuantor.github.io/notes/) — notes to the Ship It Live! videos: the code, the measurements and the details that did not fit (ORMs so far)
+- 📚 [Notes](https://kuantor.github.io/notes/) — notes to the Ship It Live! videos: the code, the measurements and the details that did not fit (ORMs, the GIL, Async Python and Networking)
 - 📜 [Quote of the Day](https://kuantor-quotes.onrender.com/) — daily quote web app
 - 👤 [About me](https://kuantor.github.io/about.html) — bio and [CV](https://kuantor.github.io/CV.pdf)
 - 📺 [YouTube channel](https://www.youtube.com/@MrKuant)
